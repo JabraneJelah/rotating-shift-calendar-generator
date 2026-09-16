@@ -24,3 +24,11 @@ Do not put secrets, private notes, access tokens, or sensitive personal data int
 Use HTTPS in production and platform-managed headers/certificates. Add a tested Content Security Policy when external scripts or other origins are introduced; do not copy a permissive policy pre-emptively. Protect state-changing endpoints with appropriate origin/CSRF controls if any are added. Rate limits, authentication, and a database are unnecessary until such server capabilities exist.
 
 Report suspected vulnerabilities privately to the repository owner; do not include exploit details or real user data in public issues.
+
+## Phase 3A local sharing and export
+
+Canonical share links are created only from validated generated state through the V1 serializer. The current origin/path is combined with that controlled query; unrelated parameters and fragments are excluded. Clipboard access occurs only after the explicit copy action. Rejection reveals the same canonical URL in a labelled read-only field and never falls back to deprecated command execution.
+
+ICS text escapes backslash, comma, semicolon, and every newline form before UTF-8-aware folding, preventing free text from injecting content properties. Calendar dates come from validated occurrences, and exclusive end dates use the domain's date-only arithmetic. The stable UID contains an application-local configuration hash, date, shift kind, and reserved `.invalid` identifier—not a full URL, secret, filesystem path, or configured production hostname.
+
+Downloads are created entirely in the browser with `text/calendar;charset=utf-8`. One object URL is created per explicit action, the temporary anchor is removed, and the URL is revoked in `finally`. Schedule data is not uploaded, logged, persisted, analyzed, or sent to a calendar provider.

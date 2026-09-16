@@ -20,6 +20,8 @@ Future share URLs use the versioned domain codec. Version 1 emits one canonical 
 
 The shipped generator restores V1 query state in its client boundary and canonicalizes it with native history. The document canonical remains the clean `/` URL, and configured query variants are excluded from `sitemap.xml`. Server-rendered homepage copy and metadata do not depend on a configuration query.
 
+Phase 3A's explicit copy action serializes the already validated configuration through the same V1 codec, includes the currently visible `m`, and combines it only with the current clean origin and pathname. It never preserves unrelated parameters or fragments and introduces no second share schema. Shared configuration URLs remain user state rather than landing pages: they retain the clean document canonical and are not added to the sitemap.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

@@ -132,3 +132,31 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 
 **Reason:** Native radios, selects, date input, buttons, React state, and the existing UI primitive cover the workflow accessibly.
 **Consequences:** No form, schema, date, calendar, or global-state package is added. A future dependency still requires demonstrated behavior that the current approach cannot reasonably provide.
+
+## D-022 — Date-only visible-month ICS export
+
+**Status:** Accepted
+
+**Reason:** The domain has calendar-day categories but no exact hours or time zones, and the visible month is the Phase 3A result users can currently verify.
+**Consequences:** Export emits one all-day event for every Day, Night, and Off occurrence in the current month. `DTEND` is the exclusive next civil date. Year/range export, recurrence, and timed events remain deferred.
+
+## D-023 — Dependency-free pure ICS serialization
+
+**Status:** Accepted
+
+**Reason:** The required RFC 5545 subset is small and controlled, and existing date-only arithmetic already handles the difficult calendar boundary.
+**Consequences:** A framework-independent export layer owns CRLF serialization, text escaping, UTF-8-aware 75-octet folding, typed failures, and stable metadata. No calendar package or production dependency is added; browser Blob/download behavior remains separate.
+
+## D-024 — Deterministic export identity and injected time
+
+**Status:** Accepted
+
+**Reason:** Repeat exports should identify the same occurrence consistently while tests must not depend on wall-clock time.
+**Consequences:** UID format is `sc-<16-hex configuration hash>-<YYYYMMDD>-<shift>@shift-calendar.invalid`, derived from canonical V1 configuration identity without embedding the raw URL. `DTSTAMP` is an explicit basic UTC timestamp supplied by the UI at activation. The reserved domain can be deliberately revised when a production identity is configured.
+
+## D-025 — Explicit canonical copy with manual fallback
+
+**Status:** Accepted
+
+**Reason:** Durable links existed before users had a clear, accessible way to obtain one, and clipboard permissions are not universally available.
+**Consequences:** Generated results expose a copy button that reuses the V1 codec and current visible month. Clipboard success/failure is announced temporarily; absence or rejection reveals a labelled read-only canonical URL. No native-share-only, social, server, or deprecated `execCommand` path is introduced.

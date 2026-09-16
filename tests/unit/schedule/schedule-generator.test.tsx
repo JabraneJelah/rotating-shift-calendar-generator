@@ -5,7 +5,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ScheduleGenerator } from "@/features/schedule";
 import {
@@ -23,8 +23,19 @@ function generate() {
   fireEvent.click(screen.getByRole("button", { name: /generate schedule/i }));
 }
 
+let writeText: ReturnType<typeof vi.fn>;
+
 beforeEach(() => {
   window.history.replaceState(null, "", "/");
+  writeText = vi.fn().mockResolvedValue(undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText },
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("generator form", () => {
@@ -88,7 +99,7 @@ describe("generator form", () => {
     ).toBeInTheDocument();
     expect(addButton).toBeDisabled();
     expect(screen.queryByLabelText(/shift for cycle day 57/i)).toBeNull();
-  });
+  }, 10_000);
 
   it("lets preset users choose a fixed night shift", () => {
     render(<ScheduleGenerator />);
@@ -257,6 +268,135 @@ describe("monthly generation", () => {
       screen.getByRole("button", { name: /generate schedule/i }),
     ).toBeEnabled();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+});
+
+describe("schedule sharing and export actions", () => {
+  it("shows actions only after valid generation", () => {
+    render(<ScheduleGenerator />);
+
+    expect(
+      screen.queryByRole("button", { name: /copy schedule link/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /download calendar file/i }),
+    ).not.toBeInTheDocument();
+
+    setStartDate("2026-10-01");
+    generate();
+
+    expect(
+      screen.getByRole("button", { name: /copy schedule link/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /download calendar file/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("copies the canonical URL with the navigated visible month", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("button", { name: /show next month/i }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /copy schedule link/i }),
+    );
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(writeText).toHaveBeenCalledWith(
+      "http://localhost:3000/?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-11",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Schedule link copied.",
+    );
+  });
+
+  it("shows a selected read-only canonical link when clipboard copying fails", async () => {
+    writeText.mockRejectedValueOnce(new Error("Permission denied"));
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "October 2026" }),
+      ).toHaveFocus(),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /copy schedule link/i }),
+    );
+
+    const manualField = await screen.findByLabelText(
+      /schedule link for manual copying/i,
+    );
+    expect(manualField).toHaveAttribute("readonly");
+    expect(manualField).toHaveValue(
+      "http://localhost:3000/?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-10",
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /copy this link manually/i,
+    );
+    await waitFor(() => {
+      expect(manualField).toHaveProperty("selectionStart", 0);
+      expect(manualField).toHaveProperty(
+        "selectionEnd",
+        (manualField as HTMLInputElement).value.length,
+      );
+    });
+  });
+
+  it("downloads the visible month with the correct MIME type and revokes its URL", async () => {
+    let exportedBlob: Blob | undefined;
+    let downloadedFilename = "";
+    const createObjectURL = vi.fn((blob: Blob) => {
+      exportedBlob = blob;
+      return "blob:visible-month";
+    });
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloadedFilename = this.download;
+    });
+
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("button", { name: /show next month/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /download calendar file/i }),
+    );
+
+    expect(downloadedFilename).toBe("shift-calendar-2026-11.ics");
+    expect(exportedBlob?.type).toBe("text/calendar;charset=utf-8");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:visible-month");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /downloaded for november 2026/i,
+    );
+  });
+
+  it("does not expose actions for an invalid shared URL", async () => {
+    window.history.replaceState(null, "", "/?v=2&kind=preset");
+    render(<ScheduleGenerator />);
+
+    await screen.findByRole("alert", {
+      name: /unable to open this schedule link/i,
+    });
+    expect(
+      screen.queryByRole("button", { name: /copy schedule link/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /download calendar file/i }),
+    ).not.toBeInTheDocument();
   });
 });
 

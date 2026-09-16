@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { expect, test, type Page } from "@playwright/test";
 
 const startDate = (page: Page) => page.getByLabel(/pattern start date/i);
@@ -128,11 +130,118 @@ test("focuses useful errors and recovers from an invalid shared link", async ({
   ).toBeEnabled();
 });
 
+test("copies a canonical navigated schedule link and restores it", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string) => {
+          (globalThis as { __copiedScheduleUrl?: string }).__copiedScheduleUrl =
+            value;
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /show next month/i }).click();
+  await page.getByRole("button", { name: /copy schedule link/i }).click();
+
+  await expect(page.getByRole("status")).toContainText(/schedule link copied/i);
+  const copiedUrl = await page.evaluate(
+    () =>
+      (globalThis as { __copiedScheduleUrl?: string }).__copiedScheduleUrl ??
+      "",
+  );
+  expect(copiedUrl).toMatch(
+    /\?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-11$/,
+  );
+
+  await page.goto(copiedUrl);
+  await expect(startDate(page)).toHaveValue("2026-10-01");
+  await expect(
+    page.getByRole("table", { name: /november 2026 work schedule/i }),
+  ).toBeVisible();
+});
+
+test("offers a canonical manual-copy fallback when clipboard access fails", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new Error("Clipboard denied for test");
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /copy schedule link/i }).click();
+
+  const manualLink = page.getByLabel(/schedule link for manual copying/i);
+  await expect(manualLink).toBeVisible();
+  await expect(manualLink).toHaveAttribute("readonly", "");
+  await expect(manualLink).toHaveValue(
+    /\?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-10$/,
+  );
+  await expect(page.getByRole("status")).toContainText(
+    /copy this link manually/i,
+  );
+});
+
+test("downloads the visible month as an all-day ICS calendar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("radio", { name: /^custom cycle/i }).check();
+  await page.getByLabel(/shift for cycle day 2/i).selectOption("night");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /download calendar file/i }).click();
+  const download = await downloadPromise;
+  const downloadPath = await download.path();
+
+  expect(download.suggestedFilename()).toBe("shift-calendar-2026-10.ics");
+  expect(downloadPath).not.toBeNull();
+  const content = await readFile(downloadPath!, "utf8");
+  expect(content.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
+  expect(content.endsWith("END:VCALENDAR\r\n")).toBe(true);
+  expect(content).toContain("SUMMARY:Day Shift\r\n");
+  expect(content).toContain("SUMMARY:Night Shift\r\n");
+  expect(content).toContain("SUMMARY:Off Day\r\n");
+  const exportedDates = [
+    ...content.matchAll(/DTSTART;VALUE=DATE:(\d{8})/g),
+  ].map((match) => match[1]);
+  expect(exportedDates).toHaveLength(31);
+  expect(exportedDates.every((value) => value.startsWith("202610"))).toBe(true);
+});
+
 for (const width of [320, 390, 768, 1440]) {
   test(`has no page overflow after generation at ${width}px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 });
+    if (width === 390) {
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {
+            writeText: async () => {
+              throw new Error("Clipboard denied for mobile fallback test");
+            },
+          },
+        });
+      });
+    }
     await page.goto("/");
     await startDate(page).fill("2026-10-01");
     await page.getByRole("button", { name: /generate schedule/i }).click();
@@ -144,6 +253,13 @@ for (const width of [320, 390, 768, 1440]) {
       await page.getByRole("button", { name: /show next month/i }).click();
       await expect(
         page.getByRole("table", { name: /november 2026/i }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: /copy schedule link/i }).click();
+      await expect(
+        page.getByLabel(/schedule link for manual copying/i),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /download calendar file/i }),
       ).toBeVisible();
     }
 

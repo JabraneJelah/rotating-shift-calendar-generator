@@ -5,6 +5,7 @@
 - **Domain unit tests:** the primary safety net for pattern expansion and date boundaries. Cover approved sequences explicitly, malformed untrusted input, positive and negative offsets, inclusive limits, Gregorian leap rules, month/year changes, query round trips, and canonical serialization.
 - **Component tests:** React Testing Library tests for accessible roles, labels, validation, state changes, and rendered results. Test behavior rather than Tailwind class strings.
 - **End-to-end tests:** a small Playwright suite for critical journeys in a real browser. It covers preset and custom generation, keyboard activation, reload and history restoration, invalid states, leap day, month navigation, and phone-to-desktop overflow.
+- **ICS unit tests:** explicit RFC 5545 envelope, CRLF, date-only boundaries, exclusive ends, summaries, ordering, deterministic identity, injected timestamps, escaping, UTF-8 folding, filename/MIME, and typed invalid-input behavior.
 - **Build and static checks:** strict TypeScript, ESLint, Prettier, and the production build are required checks.
 
 ## Commands
@@ -34,3 +35,7 @@ Every bug fix should add the smallest regression test at the lowest useful layer
 Generator component tests use roles, labels, table captions, and accessible cell names rather than implementation classes. They cover default state, editing, error connections and focus, visible shift labels, counts, canonical URLs, navigation, direct-link restoration, leap February, and exhaustive domain-error copy. Shared Testing Library cleanup lives in `tests/setup.ts`.
 
 Browser tests exercise 320, 390, 768, and 1440 CSS-pixel widths and assert that generated results do not increase document width. Representative phone, tablet, and desktop screenshots are inspected outside the repository. URL lifecycle tests include reload plus browser Back/Forward so native-history regressions cannot hide behind unit mocks.
+
+Share/export component tests mock only clipboard and object-URL browser boundaries and restore those mocks after each test. They cover hidden/visible action state, canonical visible-month links, accessible success, rejection fallback, manual-copy values, Blob type, safe filename, and URL revocation. Playwright injects a deterministic clipboard implementation where direct system clipboard permissions would be unreliable, captures the real browser download, reads its contents, and asserts that every exported start date belongs to the visible month.
+
+Calendar import compatibility is based on the RFC 5545 subset exercised here: all-day `VEVENT`s with date-only exclusive ends, unique stable UIDs, UTC `DTSTAMP`, escaped/folded text, and CRLF. Tests do not claim vendor-specific support for recurring rules, time zones, alarms, or timed shifts because those features are not emitted.

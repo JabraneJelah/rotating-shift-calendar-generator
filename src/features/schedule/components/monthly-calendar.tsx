@@ -17,6 +17,8 @@ import {
 } from "@/features/schedule/presentation/calendar-view";
 import { cn } from "@/lib/utils";
 
+import { ScheduleActions } from "./schedule-actions";
+
 type MonthlyCalendarProps = {
   readonly config: ScheduleConfig;
   readonly view: MonthlyCalendarView;
@@ -141,6 +143,8 @@ export function MonthlyCalendar({
           </div>
         ))}
       </dl>
+
+      <ScheduleActions config={config} view={view} />
 
       <div className="mt-5" data-calendar-container>
         <table className="w-full table-fixed border-separate border-spacing-1 sm:border-spacing-2">

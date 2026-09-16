@@ -32,12 +32,19 @@ Phase 2A contains no generator or calendar UI.
 
 Exit criteria were met: preset and custom workflows use the Phase 2A API, URL restoration/history and accessible focus behavior are covered, responsive overflow checks pass from 320–1440px, and static, unit, browser, and production-build checks pass.
 
-## Phase 3 — calendar output
+## Phase 3A — ICS export and explicit sharing (complete)
+
+- Canonical V1 copy control including the currently visible month
+- Accessible temporary feedback and manual-copy fallback for unavailable/rejected clipboard access
+- Dependency-free RFC 5545 visible-month export with all-day Day, Night, and Off events
+- Deterministic UIDs, injected UTC timestamps, escaped/folded text, safe filenames, and local Blob downloads
+- Unit, component, and browser coverage for copying, fallback, download content, cleanup, and mobile overflow
+
+## Phase 3B — remaining calendar output
 
 - Year view and print layout
-- ICS export with explicit all-day/timed behavior
-- Share controls built on the resilient configuration loading shipped in Phase 2B
-- Expanded browser and accessibility coverage
+- Year-oriented output decisions, without weakening the shipped monthly export contract
+- Expanded print-specific browser and accessibility coverage
 
 ## Phase 4 — content and discovery
 

@@ -9,6 +9,8 @@ Routes and content (src/app, src/content)
               ↓
 Feature composition (src/features/schedule)
               ↓
+Pure ICS export formatting (src/features/schedule/export)
+              ↓
 Pure schedule domain modules (framework-independent)
               ↓
 Small generic utilities (src/lib)
@@ -42,6 +44,14 @@ The public schedule API is `src/features/schedule/domain/index.ts`. Consumers sh
 Dependency direction is one way: routes, UI, print, and export features may import the public domain API; the domain never imports those consumers. Domain modules import only other domain modules. They do not import React, Next.js, UI components, browser state, locale formatters, persistence, authentication, or network code.
 
 Date-only operations remain date-only. The domain exposes strings and readonly result objects, never JavaScript `Date` instances. This makes the same rules usable by server rendering, client interaction, future calendar views, printing, export, and tests without duplication.
+
+## Calendar export boundary
+
+`src/features/schedule/export/index.ts` is the calendar-export API. Its serializer consumes a validated configuration, the already generated visible-month occurrences, a validated view month, and an injected basic UTC timestamp. It never expands a schedule or independently calculates cycle positions. It imports only the public schedule domain for canonical configuration identity and next-calendar-date arithmetic.
+
+The pure serializer and its escaping/types modules do not import React, Next.js, or browser globals. They emit typed success/failure results, escaped and UTF-8-folded RFC 5545 content, deterministic UIDs, and stable file metadata. `ics-download.ts` is the explicit browser boundary: it creates the UTF-8 `Blob`, clicks one temporary download anchor, and revokes the object URL in `finally`.
+
+`ScheduleActions` is nested under the existing `ScheduleGenerator` client graph. It uses the existing V1 codec to build a current-origin canonical link with visible-month state, owns Clipboard API feedback and the labelled manual-copy fallback, and invokes the export/download APIs. Dependency direction remains UI/browser effects → pure export → public domain; neither export formatting nor the domain imports UI code.
 
 ## Rendering and state
 

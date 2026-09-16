@@ -2,7 +2,7 @@
 
 Shift Calendar is a fast, accessible, mobile-first rotating-shift calendar generator. It turns approved fixed-shift patterns or an editable Day/Night/Off cycle into a clear monthly calendar without an account or backend.
 
-The current Phase 2B interface supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month navigation, and restorable versioned URLs. Schedule calculations happen locally in the browser; yearly output, printing, exports, and share controls remain Phase 3 work.
+The current Phase 3A interface supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month navigation, restorable versioned URLs, explicit link copying, and visible-month ICS downloads. Schedule calculations, sharing, and file generation happen locally in the browser; yearly output and printing remain later Phase 3 work.
 
 ## Requirements
 

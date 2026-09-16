@@ -46,6 +46,14 @@ Failed submission retains all values, connects field copy with `aria-describedby
 
 At narrow widths the form stacks, cycle rows remain bounded, the seven-column calendar compacts its spacing and type, and no page-level horizontal scroll is introduced. Wider layouts increase spacing without turning the focused workflow into a dashboard. Print-specific calendar output remains Phase 3.
 
+## Shipped share and calendar-file actions
+
+After a valid schedule is generated or restored, a compact action panel appears between the monthly summary and calendar grid. The primary generation workflow remains visually dominant. `Copy schedule link` copies the canonical V1 URL including the visible month and announces success in a polite live region. Success and error announcements clear after a short interval without animation or focus movement.
+
+If clipboard access is missing or rejected, the panel explains the failure and reveals a visibly labelled, read-only input containing the canonical link. Its contents are selected when practical and on focus so keyboard and touch users can copy manually; deprecated scripted copy is not used.
+
+`Download calendar file` creates the currently visible month locally and announces success or failure. It never downloads on page load. Both actions are real, text-labelled 44px buttons with existing focus indicators. They stack at narrow widths, wrap at wider widths, reserve a small status area to avoid major layout shift, and do not cover or horizontally widen the calendar.
+
 ## Motion
 
 Motion is brief and functional. Honor `prefers-reduced-motion`, avoid autoplaying effects, and do not make important feedback depend on animation.

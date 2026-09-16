@@ -13,7 +13,7 @@ This document defines the Phase 2A schedule contract. The engine models repeatin
 - **Custom pattern:** a user-authored cycle of supported shift kinds.
 - **Calendar occurrence:** an ISO date, its resolved shift kind, and the zero-based cycle index used.
 
-Each calendar date resolves to exactly one shift kind. A night shift may eventually cross midnight, but Phase 2A does not model its start or end time.
+Each calendar date resolves to exactly one shift kind. A night shift may eventually cross midnight, but the current domain does not model its start or end time. Phase 3A calendar exports therefore represent Day, Night, and Off occurrences as all-day events without inventing hours or time zones.
 
 ## Approved presets
 
@@ -129,4 +129,4 @@ UI code will map codes to accessible user-facing language later; domain errors d
 
 ## Deferred edge cases
 
-Overnight timestamps, daylight-saving interpretation of shift times, time-zone conversion, exact start/end times, ICS event boundaries, pay, breaks, overtime, and employer-specific alternating rotations are deliberately outside Phase 2A. Any future time-aware behavior requires separate contracts and unit tests without weakening the date-only model.
+Overnight timestamps, daylight-saving interpretation of shift times, time-zone conversion, exact start/end times, pay, breaks, overtime, and employer-specific alternating rotations remain deferred. Phase 3A maps existing date-only occurrences to all-day ICS events with an exclusive next-calendar-date end; it does not add time-aware domain behavior. Any future timed behavior requires separate contracts and unit tests without weakening the date-only model.
