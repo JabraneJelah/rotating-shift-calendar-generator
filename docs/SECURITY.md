@@ -1,0 +1,26 @@
+# Security and data handling
+
+## Current posture
+
+Phase 1 has no authentication, database, backend API, payments, analytics, ads, or user-submitted server storage. The public site URL is configuration, not a secret. `.env*` files are ignored except for `.env.example`.
+
+## Data minimization
+
+The MVP should generate schedules locally or during the request without retaining personal data. A rotation configuration is not inherently an identity, but free-text labels and shared URLs can reveal work patterns. Collect only fields required to generate the calendar, avoid names by default, and explain when a shared URL exposes its embedded configuration.
+
+Do not put secrets, private notes, access tokens, or sensitive personal data into URLs, browser logs, analytics events, or ICS metadata. Any future telemetry requires a documented event inventory, retention policy, consent/legal review where applicable, and a way to exclude user-entered labels.
+
+## Input and output controls
+
+- Validate all URL, form, and environment input at its boundary with length and shape limits.
+- Treat query parameters and imported configurations as untrusted.
+- Use React's escaped text output; do not render user HTML.
+- Prevent formula injection if CSV-like formats are ever added.
+- Generate ICS with standards-aware escaping and safe line folding; do not interpolate raw text.
+- Keep dependencies minimal, exact, audited, and updated through reviewed changes.
+
+## Web controls
+
+Use HTTPS in production and platform-managed headers/certificates. Add a tested Content Security Policy when external scripts or other origins are introduced; do not copy a permissive policy pre-emptively. Protect state-changing endpoints with appropriate origin/CSRF controls if any are added. Rate limits, authentication, and a database are unnecessary until such server capabilities exist.
+
+Report suspected vulnerabilities privately to the repository owner; do not include exploit details or real user data in public issues.
