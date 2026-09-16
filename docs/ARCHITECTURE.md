@@ -2,7 +2,7 @@
 
 ## System shape
 
-Shift Calendar is a Next.js App Router application deployed as a server-rendered, cache-friendly website. The Phase 1 homepage and metadata routes are React Server Components or native Next.js route conventions. Browser code is introduced only where interaction requires it.
+Shift Calendar is a Next.js App Router application deployed as a server-rendered, cache-friendly website. The root layout, homepage, introductory content, and metadata routes are React Server Components or native Next.js route conventions. Browser code begins at the schedule generator, where controlled inputs, focus, and native history require it.
 
 ```text
 Routes and content (src/app, src/content)
@@ -21,7 +21,7 @@ UI primitives in `src/components/ui` and shared chrome in `src/components/layout
 - `src/app`: routes, layouts, route metadata, sitemap, robots, and composition
 - `src/components/ui`: reusable, accessible shadcn/ui-style primitives
 - `src/components/layout`: shared site-level layout components
-- `src/features/schedule`: schedule-specific UI and future domain modules
+- `src/features/schedule`: schedule-specific components, presentation helpers, and pure domain modules
 - `src/lib`: generic utilities and validated application configuration
 - `src/content`: structured SEO/editorial content once real content exists
 - `src/styles`: global CSS and stable design tokens
@@ -45,7 +45,11 @@ Date-only operations remain date-only. The domain exposes strings and readonly r
 
 ## Rendering and state
 
-Server Components are the default. A minimal Client Component boundary should own interactive form state when Phase 2 begins; its validated configuration can be passed to pure domain functions. Durable/shareable state belongs in a versioned URL representation where practical. No global state library is justified yet.
+Server Components remain the default. `src/features/schedule/components/schedule-generator.tsx` is the single explicit Client Component boundary; its form, calendar, and presentation imports form the smallest practical client graph. `page.tsx`, layout, header, metadata, and introductory content remain server-rendered.
+
+The generator separates editable form values from validated generated state. Submission passes untrusted values through `validateScheduleConfig`; only validated `ScheduleConfig` reaches the month-view helper and `expandSchedule`. Presentation helpers derive Monday-first rows, English labels, counts, and adjacent months without duplicating occurrence rules.
+
+Initial and `popstate` queries are parsed only through `parseScheduleQuery`. Valid state is immediately reserialized through `serializeScheduleQuery`: manual generation uses `pushState`, while month navigation and canonicalization use `replaceState`. Empty and invalid queries leave a usable form. The server renders stable empty defaults, keeps the form disabled only until URL restoration completes after hydration, and does not make the page dynamic.
 
 ## Configuration
 

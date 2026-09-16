@@ -1,8 +1,8 @@
 # Shift Calendar
 
-Shift Calendar is the foundation for a fast, mobile-first rotating-shift calendar generator. It will help workers translate repeating day, night, and off-duty patterns into clear monthly or yearly calendars that can be printed or exported.
+Shift Calendar is a fast, accessible, mobile-first rotating-shift calendar generator. It turns approved fixed-shift patterns or an editable Day/Night/Off cycle into a clear monthly calendar without an account or backend.
 
-Phase 1 establishes the production stack, project boundaries, documentation, SEO primitives, test tooling, and a deliberately non-interactive homepage. Schedule generation begins in a later phase.
+The current Phase 2B interface supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month navigation, and restorable versioned URLs. Schedule calculations happen locally in the browser; yearly output, printing, exports, and share controls remain Phase 3 work.
 
 ## Requirements
 
@@ -40,7 +40,7 @@ Use `npm run format` to apply formatting and `npm run test:watch` during unit/co
 src/app/                 Routes, layouts, and metadata
 src/components/ui/       Reusable shadcn/ui-style primitives
 src/components/layout/   Shared page chrome
-src/features/schedule/   Schedule feature UI and, later, its domain modules
+src/features/schedule/   Generator UI, presentation helpers, and pure domain modules
 src/lib/                 Generic configuration and utilities
 src/content/             Future structured editorial content
 src/styles/              Global styles and design tokens

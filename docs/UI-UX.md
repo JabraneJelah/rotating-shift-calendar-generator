@@ -36,6 +36,16 @@ Every asynchronous or data-dependent surface must intentionally define loading, 
 
 Calendar cells need legible date numbers, a concise shift label, and enough separation for scanning. The current tokens establish a warm yellow day shift, muted indigo night shift, and green off day, always paired with non-color cues. Legends must appear with results and in print. Dense yearly views should offer progressive detail rather than shrinking text below a useful size.
 
+## Shipped monthly workflow
+
+The Phase 2B generator starts with the `4 on / 4 off` preset, Day shift, and an intentionally empty start date. Users may select the `2-2-3` preset, switch the fixed working shift, or build a custom ordered cycle with native Day/Night/Off selects. Custom cycles retain at least one position and support up to 56.
+
+Successful generation moves focus to the result heading and shows a Monday-first semantic table. Every date cell includes a visible day number, icon, and Day/Night/Off text plus a full accessible date-and-shift name. The result includes schedule context, monthly counts, a legend, and 44px previous/next controls. Month navigation preserves the validated pattern and updates the URL without adding a history entry for every viewed month.
+
+Failed submission retains all values, connects field copy with `aria-describedby`, marks invalid fields, and moves focus to the error summary. Invalid shared URLs show a separate alert while leaving the form available for recovery. A polite live region announces generation and month changes without interrupting routine editing.
+
+At narrow widths the form stacks, cycle rows remain bounded, the seven-column calendar compacts its spacing and type, and no page-level horizontal scroll is introduced. Wider layouts increase spacing without turning the focused workflow into a dashboard. Print-specific calendar output remains Phase 3.
+
 ## Motion
 
 Motion is brief and functional. Honor `prefers-reduced-motion`, avoid autoplaying effects, and do not make important feedback depend on animation.

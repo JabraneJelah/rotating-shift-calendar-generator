@@ -10,13 +10,15 @@ Indexable landing pages are server-rendered and useful without client JavaScript
 - `/calculators/[calculator]` — focused scheduling utilities
 - `/guides/[slug]` — editorial guidance
 
-Only `/` exists in Phase 1. New routes require distinct search intent and substantive content; route count is not a goal.
+Only `/` exists through Phase 2B. New routes require distinct search intent and substantive content; route count is not a goal.
 
 ## URL conventions
 
 Use lowercase kebab-case, stable descriptive slugs, no file extensions, and no trailing-slash variants. Query parameters may carry generator state, but configurable result permutations are not landing pages. Changing a published slug requires a permanent redirect and link updates.
 
 Future share URLs use the versioned domain codec. Version 1 emits one canonical parameter order, rejects duplicate or unknown parameters, and uses stable short cycle tokens. Valid noncanonical ordering may be parsed, but links are reserialized to the canonical form before they are presented for sharing.
+
+The shipped generator restores V1 query state in its client boundary and canonicalizes it with native history. The document canonical remains the clean `/` URL, and configured query variants are excluded from `sitemap.xml`. Server-rendered homepage copy and metadata do not depend on a configuration query.
 
 ## Metadata and canonicals
 
@@ -34,7 +36,7 @@ Link related pattern pages, calculators, and guides using descriptive anchor tex
 
 ## Structured data
 
-Add JSON-LD only for a schema type accurately represented by visible page content. Validate it, keep it consistent with metadata, and do not add ratings, FAQs, or other rich-result markup solely to attract search features. There is no structured data in Phase 1.
+Add JSON-LD only for a schema type accurately represented by visible page content. Validate it, keep it consistent with metadata, and do not add ratings, FAQs, or other rich-result markup solely to attract search features. There is no structured data through Phase 2B.
 
 ## Programmatic SEO safeguards
 

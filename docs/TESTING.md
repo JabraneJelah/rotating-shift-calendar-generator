@@ -4,7 +4,7 @@
 
 - **Domain unit tests:** the primary safety net for pattern expansion and date boundaries. Cover approved sequences explicitly, malformed untrusted input, positive and negative offsets, inclusive limits, Gregorian leap rules, month/year changes, query round trips, and canonical serialization.
 - **Component tests:** React Testing Library tests for accessible roles, labels, validation, state changes, and rendered results. Test behavior rather than Tailwind class strings.
-- **End-to-end tests:** a small Playwright suite for critical journeys in a real browser. Phase 1 contains a homepage smoke test; Phase 2 should cover completing a schedule on mobile and desktop viewports.
+- **End-to-end tests:** a small Playwright suite for critical journeys in a real browser. It covers preset and custom generation, keyboard activation, reload and history restoration, invalid states, leap day, month navigation, and phone-to-desktop overflow.
 - **Build and static checks:** strict TypeScript, ESLint, Prettier, and the production build are required checks.
 
 ## Commands
@@ -30,3 +30,7 @@ Schedule tests must assert explicit values rather than snapshots. Boundary cover
 Date-only tests must not rely on the machine's local zone. The domain suite should run under at least `TZ=UTC` and `TZ=America/New_York` when the environment permits, with identical results. Daylight-saving-adjacent dates are calendar days and must not be skipped or duplicated.
 
 Every bug fix should add the smallest regression test at the lowest useful layer. Do not claim a command passed unless it was run in the current change.
+
+Generator component tests use roles, labels, table captions, and accessible cell names rather than implementation classes. They cover default state, editing, error connections and focus, visible shift labels, counts, canonical URLs, navigation, direct-link restoration, leap February, and exhaustive domain-error copy. Shared Testing Library cleanup lives in `tests/setup.ts`.
+
+Browser tests exercise 320, 390, 768, and 1440 CSS-pixel widths and assert that generated results do not increase document width. Representative phone, tablet, and desktop screenshots are inspected outside the repository. URL lifecycle tests include reload plus browser Back/Forward so native-history regressions cannot hide behind unit mocks.

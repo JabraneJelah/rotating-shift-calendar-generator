@@ -97,3 +97,38 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Status:** Accepted  
 **Reason:** URL and form data are expected to be malformed and later UI needs stable codes for accessible messages without parsing thrown exceptions.  
 **Consequences:** Parsers and validators return `DomainResult` with machine-readable `DomainError` context. Only violations of already validated programmer invariants may throw.
+
+## D-017 — Monday-first semantic monthly table
+
+**Status:** Accepted
+
+**Reason:** A real table gives dates stable weekday relationships, while Monday-first ordering matches the initial international worker audience and product brief.
+**Consequences:** Monthly results use a caption, column headers, table cells, visible Day/Night/Off text, icons, and full accessible names. Week-start configuration and alternate calendar layouts are deferred.
+
+## D-018 — Native history for generator URL state
+
+**Status:** Accepted
+
+**Reason:** The V1 codec already defines durable state, and native `pushState`, `replaceState`, and `popstate` integrate with the App Router without routing or state dependencies.
+**Consequences:** Manual generation pushes one entry; month navigation and canonicalization replace the current entry; incoming values are parsed and emitted only by the domain codec.
+
+## D-019 — Editable and generated state remain separate
+
+**Status:** Accepted
+
+**Reason:** Partially edited or invalid values must remain recoverable without being mistaken for schedule truth.
+**Consequences:** Controlled form state may contain an empty date, but generated state contains only validated `ScheduleConfig` and derived occurrences. Validation errors never clear the user's edits.
+
+## D-020 — One deep generator client boundary
+
+**Status:** Accepted
+
+**Reason:** The form, focus behavior, and history require browser APIs, while the route content and metadata do not.
+**Consequences:** Only `ScheduleGenerator` declares `"use client"`; the page and layout remain Server Components. The form is disabled during the brief hydration restoration window so server defaults cannot overwrite early input.
+
+## D-021 — Native controls and local state for Phase 2B
+
+**Status:** Accepted
+
+**Reason:** Native radios, selects, date input, buttons, React state, and the existing UI primitive cover the workflow accessibly.
+**Consequences:** No form, schema, date, calendar, or global-state package is added. A future dependency still requires demonstrated behavior that the current approach cannot reasonably provide.

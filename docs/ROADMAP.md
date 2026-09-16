@@ -21,7 +21,7 @@ Exit criteria were met: static checks and unit tests passed, the production buil
 
 Phase 2A contains no generator or calendar UI.
 
-## Phase 2B — monthly generator interface
+## Phase 2B — monthly generator interface (complete)
 
 - Accessible pattern and fixed working-shift selection
 - Start-date input and custom day/night/off cycle editing
@@ -30,11 +30,13 @@ Phase 2A contains no generator or calendar UI.
 - URL state integration using the V1 codec, without making configured results indexable
 - Component and end-to-end coverage for the completed journey
 
+Exit criteria were met: preset and custom workflows use the Phase 2A API, URL restoration/history and accessible focus behavior are covered, responsive overflow checks pass from 320–1440px, and static, unit, browser, and production-build checks pass.
+
 ## Phase 3 — calendar output
 
 - Year view and print layout
 - ICS export with explicit all-day/timed behavior
-- Share controls and resilient configuration loading
+- Share controls built on the resilient configuration loading shipped in Phase 2B
 - Expanded browser and accessibility coverage
 
 ## Phase 4 — content and discovery
