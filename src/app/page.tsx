@@ -16,7 +16,7 @@ const outcomes = [
 export default function HomePage() {
   return (
     <main id="main-content">
-      <section className="relative overflow-hidden">
+      <section className="print-hidden relative overflow-hidden">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_80%_0%,oklch(0.91_0.06_183),transparent_48%)]"
           aria-hidden="true"
@@ -66,7 +66,7 @@ export default function HomePage() {
         <ScheduleGenerator />
       </div>
 
-      <section className="border-border bg-muted/35 border-t">
+      <section className="print-hidden border-border bg-muted/35 border-t">
         <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8">
           <h2 className="text-lg font-bold tracking-tight">
             Private by design

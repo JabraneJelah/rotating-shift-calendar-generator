@@ -1,35 +1,35 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type { ISOYearMonth, ScheduleConfig } from "@/features/schedule/domain";
+import type { ScheduleConfig } from "@/features/schedule/domain";
+import { getScheduleName } from "@/features/schedule/presentation/calendar-view";
 import {
-  getAdjacentViewMonth,
-  getScheduleName,
-  type MonthlyCalendarView,
-} from "@/features/schedule/presentation/calendar-view";
+  getAdjacentYear,
+  type YearlyCalendarView,
+} from "@/features/schedule/presentation/yearly-calendar-view";
 
 import { CalendarMonthGrid } from "./calendar-month-grid";
 import { ShiftLegend } from "./shift-legend";
 
-type MonthlyCalendarProps = {
+type YearlyCalendarProps = {
   readonly config: ScheduleConfig;
-  readonly view: MonthlyCalendarView;
+  readonly view: YearlyCalendarView;
   readonly headingRef: React.RefObject<HTMLHeadingElement | null>;
-  readonly onNavigate: (viewMonth: ISOYearMonth) => void;
+  readonly onNavigate: (year: number) => void;
 };
 
-export function MonthlyCalendar({
+export function YearlyCalendar({
   config,
   view,
   headingRef,
   onNavigate,
-}: MonthlyCalendarProps) {
-  const previousMonth = getAdjacentViewMonth(view.viewMonth, -1);
-  const nextMonth = getAdjacentViewMonth(view.viewMonth, 1);
+}: YearlyCalendarProps) {
+  const previousYear = getAdjacentYear(view.year, -1);
+  const nextYear = getAdjacentYear(view.year, 1);
 
   return (
     <section
-      className="monthly-calendar border-border mt-8 border-t pt-8"
+      className="yearly-calendar border-border mt-8 border-t pt-8"
       aria-labelledby="calendar-result-heading"
     >
       <p className="print-only print-site-name">Shift Calendar</p>
@@ -44,34 +44,40 @@ export function MonthlyCalendar({
             ref={headingRef}
             tabIndex={-1}
           >
-            {view.label}
+            {view.year} yearly schedule
           </h3>
         </div>
         <div
           className="print-hidden flex items-center justify-between gap-2"
-          aria-label="Calendar month navigation"
+          aria-label="Calendar year navigation"
         >
           <Button
-            aria-label="Show previous month"
+            aria-label={
+              previousYear === null
+                ? "Previous year unavailable"
+                : `Show ${previousYear}`
+            }
             className="size-11 px-0"
-            disabled={previousMonth === null}
-            onClick={() => previousMonth && onNavigate(previousMonth)}
+            disabled={previousYear === null}
+            onClick={() => previousYear !== null && onNavigate(previousYear)}
             type="button"
             variant="outline"
           >
             <ChevronLeft aria-hidden="true" className="size-5" />
           </Button>
           <p
-            className="min-w-36 text-center text-sm font-semibold"
+            className="min-w-24 text-center text-sm font-semibold"
             aria-live="polite"
           >
-            {view.label}
+            {view.year}
           </p>
           <Button
-            aria-label="Show next month"
+            aria-label={
+              nextYear === null ? "Next year unavailable" : `Show ${nextYear}`
+            }
             className="size-11 px-0"
-            disabled={nextMonth === null}
-            onClick={() => nextMonth && onNavigate(nextMonth)}
+            disabled={nextYear === null}
+            onClick={() => nextYear !== null && onNavigate(nextYear)}
             type="button"
             variant="outline"
           >
@@ -81,8 +87,8 @@ export function MonthlyCalendar({
       </div>
 
       <dl
-        aria-label="Monthly shift totals"
-        className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5"
+        aria-label="Yearly shift totals"
+        className="year-summary mt-6 grid grid-cols-2 gap-3 sm:grid-cols-7"
       >
         <div className="bg-muted/55 col-span-2 rounded-xl p-3 sm:col-span-2">
           <dt className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
@@ -100,9 +106,11 @@ export function MonthlyCalendar({
         </div>
         {(
           [
+            ["Year", view.year],
             ["Day", view.counts.day],
             ["Night", view.counts.night],
             ["Off", view.counts.off],
+            ["Total dates", view.occurrences.length],
           ] as const
         ).map(([label, count]) => (
           <div className="bg-muted/55 rounded-xl p-3 text-center" key={label}>
@@ -114,9 +122,24 @@ export function MonthlyCalendar({
         ))}
       </dl>
 
-      <div className="mt-5" data-calendar-container>
-        <CalendarMonthGrid label={view.label} weeks={view.weeks} />
+      <div
+        className="year-grid mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+        data-calendar-container
+      >
+        {view.months.map((month, index) => (
+          <article
+            className={`year-month border-border rounded-xl border p-2 ${index === 6 ? "year-print-break" : ""}`}
+            key={month.viewMonth}
+          >
+            <CalendarMonthGrid
+              compact
+              label={month.label}
+              weeks={month.weeks}
+            />
+          </article>
+        ))}
       </div>
+
       <ShiftLegend />
     </section>
   );

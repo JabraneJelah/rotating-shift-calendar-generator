@@ -65,6 +65,153 @@ body {
   color: oklch(0.21 0.04 183);
 }
 
+.print-only {
+  display: none;
+}
+
+@page monthly-calendar {
+  size: portrait;
+  margin: 8mm;
+}
+
+@page yearly-calendar {
+  size: landscape;
+  margin: 7mm;
+}
+
+@media print {
+  html,
+  body {
+    background: white;
+    color: black;
+  }
+
+  body {
+    min-height: auto;
+  }
+
+  body:has(.monthly-calendar) {
+    page: monthly-calendar;
+  }
+
+  body:has(.yearly-calendar) {
+    page: yearly-calendar;
+  }
+
+  .print-hidden,
+  .generator-intro,
+  .schedule-form-region,
+  [role="alert"] {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block;
+  }
+
+  #generator {
+    max-width: none;
+    padding: 0;
+  }
+
+  #generator > section {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .monthly-calendar,
+  .yearly-calendar {
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+
+  .monthly-calendar {
+    page: monthly-calendar;
+  }
+
+  .yearly-calendar {
+    page: yearly-calendar;
+  }
+
+  .print-site-name {
+    margin-bottom: 2mm;
+    font-size: 9pt;
+    font-weight: 700;
+  }
+
+  .monthly-calendar h3,
+  .yearly-calendar h3 {
+    margin: 0;
+    font-size: 16pt;
+  }
+
+  .monthly-calendar dl,
+  .yearly-calendar .year-summary {
+    margin-top: 3mm;
+    gap: 2mm;
+  }
+
+  .monthly-calendar dl > div,
+  .yearly-calendar .year-summary > div {
+    padding: 2mm;
+    border: 0.25mm solid #cbd5d1;
+    background: white;
+  }
+
+  .monthly-calendar [data-calendar-container] {
+    margin-top: 3mm;
+  }
+
+  .monthly-calendar table {
+    border-spacing: 1.2mm;
+  }
+
+  .monthly-calendar td {
+    height: 18mm;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .year-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 2.5mm !important;
+    margin-top: 3mm;
+  }
+
+  .year-month {
+    break-inside: avoid;
+    padding: 1mm;
+    border-color: #cbd5d1;
+  }
+
+  .year-month table {
+    border-spacing: 0.25mm;
+  }
+
+  .year-month td {
+    height: 7mm;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .year-print-break {
+    break-before: page;
+  }
+
+  .shift-legend {
+    margin-top: 2mm;
+    gap: 4mm;
+  }
+
+  .shift-legend span {
+    font-size: 8pt;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

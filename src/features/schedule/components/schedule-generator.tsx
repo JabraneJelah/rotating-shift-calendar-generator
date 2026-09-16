@@ -26,6 +26,10 @@ import {
   type MonthlyCalendarView,
 } from "@/features/schedule/presentation/calendar-view";
 import {
+  createYearlyCalendarView,
+  type YearlyCalendarView,
+} from "@/features/schedule/presentation/yearly-calendar-view";
+import {
   getScheduleErrorMessage,
   presentScheduleErrors,
   presentScheduleLinkErrors,
@@ -33,7 +37,13 @@ import {
 } from "@/features/schedule/presentation/schedule-error-messages";
 
 import { MonthlyCalendar } from "./monthly-calendar";
+import { ScheduleActions } from "./schedule-actions";
 import { ScheduleForm, type ScheduleMode } from "./schedule-form";
+import {
+  ScheduleViewControls,
+  type ScheduleViewMode,
+} from "./schedule-view-controls";
+import { YearlyCalendar } from "./yearly-calendar";
 
 type EditableScheduleState = {
   readonly mode: ScheduleMode;
@@ -102,6 +112,8 @@ export function ScheduleGenerator() {
   const [generated, setGenerated] = useState<GeneratedScheduleState | null>(
     null,
   );
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>("month");
+  const [yearlyView, setYearlyView] = useState<YearlyCalendarView | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [isReady, setIsReady] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
@@ -136,6 +148,8 @@ export function ScheduleGenerator() {
         }
 
         setGenerated(null);
+        setViewMode("month");
+        setYearlyView(null);
         return false;
       }
 
@@ -152,10 +166,14 @@ export function ScheduleGenerator() {
         }
 
         setGenerated(null);
+        setViewMode("month");
+        setYearlyView(null);
         return false;
       }
 
       setGenerated({ config, view: viewResult.value });
+      setViewMode("month");
+      setYearlyView(null);
       setFieldErrors({});
       setGeneralErrors([]);
       setLinkErrors([]);
@@ -189,6 +207,8 @@ export function ScheduleGenerator() {
       setGeneralErrors([]);
       setLinkErrors([]);
       setGenerated(null);
+      setViewMode("month");
+      setYearlyView(null);
       setStatusMessage("");
       return;
     }
@@ -201,6 +221,8 @@ export function ScheduleGenerator() {
       setGeneralErrors([]);
       setLinkErrors(presentScheduleLinkErrors(parsedResult.errors));
       setGenerated(null);
+      setViewMode("month");
+      setYearlyView(null);
       setStatusMessage("");
       return;
     }
@@ -303,6 +325,56 @@ export function ScheduleGenerator() {
     );
   }
 
+  function showYear(
+    config: ScheduleConfig,
+    year: number,
+    focusResult: boolean,
+  ) {
+    const result = createYearlyCalendarView(config, year);
+
+    if (!result.ok) {
+      setGeneralErrors(result.errors.map(getScheduleErrorMessage));
+      focusErrorSummary();
+      return;
+    }
+
+    setYearlyView(result.value);
+    setViewMode("year");
+    setGeneralErrors([]);
+    setStatusMessage(`Showing yearly schedule for ${year}.`);
+
+    if (focusResult) {
+      window.setTimeout(() => resultHeadingRef.current?.focus(), 0);
+    }
+  }
+
+  function handleViewModeChange(mode: ScheduleViewMode) {
+    if (generated === null || mode === viewMode) {
+      return;
+    }
+
+    if (mode === "month") {
+      setViewMode("month");
+      setStatusMessage(
+        `Showing monthly schedule for ${generated.view.viewMonth}.`,
+      );
+      window.setTimeout(() => resultHeadingRef.current?.focus(), 0);
+      return;
+    }
+
+    showYear(
+      generated.config,
+      Number(generated.view.viewMonth.slice(0, 4)),
+      true,
+    );
+  }
+
+  function handleYearNavigation(year: number) {
+    if (generated !== null) {
+      showYear(generated.config, year, false);
+    }
+  }
+
   const submissionMessages = formErrorMessages(fieldErrors, generalErrors);
 
   return (
@@ -310,7 +382,7 @@ export function ScheduleGenerator() {
       aria-labelledby="generator-title"
       className="border-border bg-card rounded-3xl border p-4 shadow-[0_24px_70px_-44px_oklch(0.32_0.07_220/0.38)] sm:p-7 lg:p-9"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="generator-intro flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-primary text-sm font-semibold">
             Free schedule generator
@@ -331,7 +403,7 @@ export function ScheduleGenerator() {
         </span>
       </div>
 
-      <p className="text-muted-foreground mt-4 inline-flex items-center gap-2 text-xs font-medium">
+      <p className="generator-intro text-muted-foreground mt-4 inline-flex items-center gap-2 text-xs font-medium">
         <LockKeyhole aria-hidden="true" className="size-3.5" />
         Generated on this device. Your schedule is not saved remotely.
       </p>
@@ -372,7 +444,7 @@ export function ScheduleGenerator() {
         </div>
       ) : null}
 
-      <div className="mt-7">
+      <div className="schedule-form-region mt-7">
         <ScheduleForm
           customCycle={form.customCycle}
           disabled={!isReady}
@@ -407,12 +479,33 @@ export function ScheduleGenerator() {
       </p>
 
       {generated ? (
-        <MonthlyCalendar
-          config={generated.config}
-          headingRef={resultHeadingRef}
-          onNavigate={handleMonthNavigation}
-          view={generated.view}
-        />
+        <>
+          <ScheduleViewControls
+            onChange={handleViewModeChange}
+            value={viewMode}
+          />
+          <ScheduleActions
+            activeView={viewMode}
+            config={generated.config}
+            onPrint={() => window.print()}
+            view={generated.view}
+          />
+          {viewMode === "month" ? (
+            <MonthlyCalendar
+              config={generated.config}
+              headingRef={resultHeadingRef}
+              onNavigate={handleMonthNavigation}
+              view={generated.view}
+            />
+          ) : yearlyView ? (
+            <YearlyCalendar
+              config={generated.config}
+              headingRef={resultHeadingRef}
+              onNavigate={handleYearNavigation}
+              view={yearlyView}
+            />
+          ) : null}
+        </>
       ) : null}
     </section>
   );

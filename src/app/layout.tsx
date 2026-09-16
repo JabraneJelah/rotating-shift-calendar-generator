@@ -43,7 +43,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <a
-          className="bg-foreground text-background focus-visible:ring-ring/45 sr-only fixed top-3 left-3 z-50 rounded-md px-4 py-2 outline-none focus:not-sr-only focus-visible:ring-3"
+          className="print-hidden bg-foreground text-background focus-visible:ring-ring/45 sr-only fixed top-3 left-3 z-50 rounded-md px-4 py-2 outline-none focus:not-sr-only focus-visible:ring-3"
           href="#main-content"
         >
           Skip to main content

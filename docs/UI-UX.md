@@ -44,7 +44,7 @@ Successful generation moves focus to the result heading and shows a Monday-first
 
 Failed submission retains all values, connects field copy with `aria-describedby`, marks invalid fields, and moves focus to the error summary. Invalid shared URLs show a separate alert while leaving the form available for recovery. A polite live region announces generation and month changes without interrupting routine editing.
 
-At narrow widths the form stacks, cycle rows remain bounded, the seven-column calendar compacts its spacing and type, and no page-level horizontal scroll is introduced. Wider layouts increase spacing without turning the focused workflow into a dashboard. Print-specific calendar output remains Phase 3.
+At narrow widths the form stacks, cycle rows remain bounded, the seven-column calendar compacts its spacing and type, and no page-level horizontal scroll is introduced. Wider layouts increase spacing without turning the focused workflow into a dashboard.
 
 ## Shipped share and calendar-file actions
 
@@ -53,6 +53,14 @@ After a valid schedule is generated or restored, a compact action panel appears 
 If clipboard access is missing or rejected, the panel explains the failure and reveals a visibly labelled, read-only input containing the canonical link. Its contents are selected when practical and on focus so keyboard and touch users can copy manually; deprecated scripted copy is not used.
 
 `Download calendar file` creates the currently visible month locally and announces success or failure. It never downloads on page load. Both actions are real, text-labelled 44px buttons with existing focus indicators. They stack at narrow widths, wrap at wider widths, reserve a small status area to avoid major layout shift, and do not cover or horizontally widen the calendar.
+
+## Shipped yearly and print workflow
+
+After generation, a native radio group switches between Month and Year. The year view displays twelve semantic Monday-first calendar tables, annual Day/Night/Off totals, schedule identity, an accessible legend, and labelled previous/next year controls. It uses one column on narrow screens, two at medium widths, and three on wide screens. Compact cells retain full accessible date-and-shift names while showing the day number plus D, N, or O, so color is never the only cue.
+
+Switching views moves focus to the new result heading and announces the change politely. Year mode is intentionally transient and never rewrites the V1 URL; returning to Month restores the preserved visible month. Copy and calendar-file actions continue to name that month explicitly.
+
+The text-labelled print action invokes native browser printing for the active view. Print media hides site navigation, marketing, configuration, errors, view controls, and actions while keeping a small product label, schedule heading, schedule context, totals, calendar tables, and legend. Monthly print requests portrait output. Year print requests landscape output with January–June followed by a page break and July–December, arranged three across and two down. Browser print engines and user-selected margins, headers, scale, paper, and background settings may alter final pagination, so the layout is a strong request rather than a guarantee.
 
 ## Motion
 

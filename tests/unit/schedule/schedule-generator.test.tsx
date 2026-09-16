@@ -271,6 +271,82 @@ describe("monthly generation", () => {
   });
 });
 
+describe("yearly generation", () => {
+  it("switches to twelve semantic month tables without changing the URL", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    await screen.findByRole("table", { name: /october 2026/i });
+    const monthlyUrl = window.location.search;
+
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
+
+    expect(
+      await screen.findByRole("heading", { name: /2026 yearly schedule/i }),
+    ).toHaveFocus();
+    expect(screen.getAllByRole("table")).toHaveLength(12);
+    expect(
+      screen
+        .getByRole("table", { name: /february 2026/i })
+        .querySelectorAll("time"),
+    ).toHaveLength(28);
+    expect(document.querySelectorAll(".year-grid time")).toHaveLength(365);
+    expect(screen.getByLabelText(/yearly shift totals/i)).toHaveTextContent(
+      "Total dates365",
+    );
+    expect(window.location.search).toBe(monthlyUrl);
+  });
+
+  it("navigates years transiently and returns to the preserved month", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
+    await screen.findByRole("heading", { name: /2026 yearly schedule/i });
+
+    fireEvent.click(screen.getByRole("button", { name: "Show 2027" }));
+    expect(
+      await screen.findByRole("heading", { name: /2027 yearly schedule/i }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("radio", { name: "Month" }));
+    expect(
+      await screen.findByRole("table", { name: /october 2026/i }),
+    ).toBeInTheDocument();
+    expect(window.location.search).toContain("m=2026-10");
+  });
+
+  it("prints whichever view is active", () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => undefined);
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    const scheduleUrl = window.location.href;
+
+    fireEvent.click(screen.getByRole("button", { name: /print month view/i }));
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
+    fireEvent.click(screen.getByRole("button", { name: /print year view/i }));
+
+    expect(print).toHaveBeenCalledTimes(2);
+    expect(window.location.href).toBe(scheduleUrl);
+  });
+
+  it("restores a monthly view after history navigation", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
+    await screen.findByRole("heading", { name: /yearly schedule/i });
+
+    fireEvent(window, new PopStateEvent("popstate"));
+
+    expect(
+      await screen.findByRole("table", { name: /october 2026/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Month" })).toBeChecked();
+  });
+});
+
 describe("schedule sharing and export actions", () => {
   it("shows actions only after valid generation", () => {
     render(<ScheduleGenerator />);
@@ -280,6 +356,12 @@ describe("schedule sharing and export actions", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /download calendar file/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("radio", { name: "Month" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /print month view/i }),
     ).not.toBeInTheDocument();
 
     setStartDate("2026-10-01");
@@ -291,6 +373,10 @@ describe("schedule sharing and export actions", () => {
     expect(
       screen.getByRole("button", { name: /download calendar file/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Month" })).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: /print month view/i }),
+    ).toBeInTheDocument();
   });
 
   it("copies the canonical URL with the navigated visible month", async () => {
@@ -298,6 +384,7 @@ describe("schedule sharing and export actions", () => {
     setStartDate("2026-10-01");
     generate();
     fireEvent.click(screen.getByRole("button", { name: /show next month/i }));
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
 
     fireEvent.click(
       screen.getByRole("button", { name: /copy schedule link/i }),
@@ -372,6 +459,7 @@ describe("schedule sharing and export actions", () => {
     setStartDate("2026-10-01");
     generate();
     fireEvent.click(screen.getByRole("button", { name: /show next month/i }));
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
     fireEvent.click(
       screen.getByRole("button", { name: /download calendar file/i }),
     );
@@ -396,6 +484,12 @@ describe("schedule sharing and export actions", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /download calendar file/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("radio", { name: "Year" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /print/i }),
     ).not.toBeInTheDocument();
   });
 });

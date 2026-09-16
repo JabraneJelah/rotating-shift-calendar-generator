@@ -225,6 +225,84 @@ test("downloads the visible month as an all-day ICS calendar", async ({
   expect(exportedDates.every((value) => value.startsWith("202610"))).toBe(true);
 });
 
+test("shows a complete yearly overview and keeps its navigation transient", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2028-02-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  const monthlyUrl = page.url();
+
+  await page.getByRole("radio", { name: "Year" }).check();
+  await expect(
+    page.getByRole("heading", { name: /2028 yearly schedule/i }),
+  ).toBeFocused();
+  await expect(page.getByRole("table")).toHaveCount(12);
+  await expect(
+    page.getByRole("table", { name: /february 2028/i }).locator("time"),
+  ).toHaveCount(29);
+  await expect(page.locator(".year-grid time")).toHaveCount(366);
+  await expect(page.getByLabel(/yearly shift totals/i)).toContainText(
+    "Total dates366",
+  );
+  expect(page.url()).toBe(monthlyUrl);
+
+  await page.getByRole("button", { name: "Show 2029" }).click();
+  await expect(
+    page.getByRole("heading", { name: /2029 yearly schedule/i }),
+  ).toBeVisible();
+  expect(page.url()).toBe(monthlyUrl);
+
+  await page.getByRole("radio", { name: "Month" }).check();
+  await expect(
+    page.getByRole("table", { name: /february 2028/i }),
+  ).toBeVisible();
+});
+
+test("invokes native printing for the active view", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.print = () => {
+      (globalThis as { __printCalls?: number }).__printCalls =
+        ((globalThis as { __printCalls?: number }).__printCalls ?? 0) + 1;
+    };
+  });
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /print month view/i }).click();
+  await page.getByRole("radio", { name: "Year" }).check();
+  await page.getByRole("button", { name: /print year view/i }).click();
+
+  expect(
+    await page.evaluate(
+      () => (globalThis as { __printCalls?: number }).__printCalls,
+    ),
+  ).toBe(2);
+});
+
+test("print media exposes only the active calendar and print context", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("radio", { name: "Year" }).check();
+  await page.emulateMedia({ media: "print" });
+
+  await expect(
+    page.getByRole("heading", { name: /2026 yearly schedule/i }),
+  ).toBeVisible();
+  await expect(page.locator(".print-site-name")).toHaveText("Shift Calendar");
+  await expect(page.getByRole("heading", { level: 1 })).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: /generate schedule/i }),
+  ).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: /print year view/i }),
+  ).toBeHidden();
+  await expect(page.getByRole("table")).toHaveCount(12);
+});
+
 for (const width of [320, 390, 768, 1440]) {
   test(`has no page overflow after generation at ${width}px`, async ({
     page,
@@ -249,7 +327,11 @@ for (const width of [320, 390, 768, 1440]) {
       page.getByRole("table", { name: /october 2026/i }),
     ).toBeVisible();
 
+    await page.getByRole("radio", { name: "Year" }).check();
+    await expect(page.getByRole("table")).toHaveCount(12);
+
     if (width === 390) {
+      await page.getByRole("radio", { name: "Month" }).check();
       await page.getByRole("button", { name: /show next month/i }).click();
       await expect(
         page.getByRole("table", { name: /november 2026/i }),

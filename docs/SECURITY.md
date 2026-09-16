@@ -32,3 +32,7 @@ Canonical share links are created only from validated generated state through th
 ICS text escapes backslash, comma, semicolon, and every newline form before UTF-8-aware folding, preventing free text from injecting content properties. Calendar dates come from validated occurrences, and exclusive end dates use the domain's date-only arithmetic. The stable UID contains an application-local configuration hash, date, shift kind, and reserved `.invalid` identifier—not a full URL, secret, filesystem path, or configured production hostname.
 
 Downloads are created entirely in the browser with `text/calendar;charset=utf-8`. One object URL is created per explicit action, the temporary anchor is removed, and the URL is revoked in `finally`. Schedule data is not uploaded, logged, persisted, analyzed, or sent to a calendar provider.
+
+## Phase 3B local printing
+
+Printing is initiated only by an explicit user action and delegates directly to the browser's native print dialog. The application reuses escaped semantic calendar HTML and local CSS; it does not build raw HTML strings, rasterize content, contact a print/PDF service, load remote print assets, store print jobs, or transmit schedule data. Browser “Save as PDF” behavior remains local browser functionality rather than an application-generated download.

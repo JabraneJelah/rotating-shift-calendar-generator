@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Copy, Download } from "lucide-react";
+import { Copy, Download, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,8 @@ import type { MonthlyCalendarView } from "@/features/schedule/presentation/calen
 type ScheduleActionsProps = {
   readonly config: ScheduleConfig;
   readonly view: MonthlyCalendarView;
+  readonly activeView: "month" | "year";
+  readonly onPrint: () => void;
 };
 
 type ActionStatus = {
@@ -24,7 +26,12 @@ type ActionStatus = {
   readonly message: string;
 };
 
-export function ScheduleActions({ config, view }: ScheduleActionsProps) {
+export function ScheduleActions({
+  activeView,
+  config,
+  onPrint,
+  view,
+}: ScheduleActionsProps) {
   const [status, setStatus] = useState<ActionStatus | null>(null);
   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
   const fallbackInputRef = useRef<HTMLInputElement>(null);
@@ -135,14 +142,14 @@ export function ScheduleActions({ config, view }: ScheduleActionsProps) {
   return (
     <section
       aria-labelledby="schedule-actions-heading"
-      className="border-border bg-muted/35 mt-5 rounded-xl border p-4"
+      className="print-hidden border-border bg-muted/35 mt-5 rounded-xl border p-4"
     >
       <h4 className="text-sm font-bold" id="schedule-actions-heading">
-        Share or export this month
+        Share, export, or print
       </h4>
       <p className="text-muted-foreground mt-1 text-sm leading-6">
         Copy a restorable schedule link or download {view.label} as an all-day
-        calendar file.
+        calendar file. Printing uses the active {activeView} view.
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button onClick={handleCopy} type="button" variant="outline">
@@ -152,6 +159,10 @@ export function ScheduleActions({ config, view }: ScheduleActionsProps) {
         <Button onClick={handleDownload} type="button" variant="outline">
           <Download aria-hidden="true" className="mr-2 size-4" />
           Download calendar file
+        </Button>
+        <Button onClick={onPrint} type="button" variant="outline">
+          <Printer aria-hidden="true" className="mr-2 size-4" />
+          Print {activeView} view
         </Button>
       </div>
 

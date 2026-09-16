@@ -192,7 +192,7 @@ export function formatFullDate(date: ISODate): string {
   return `${weekdayName}, ${monthName} ${Number(dayText)}, ${Number(yearText)}`;
 }
 
-function createWeeks(
+export function createCalendarWeeks(
   occurrences: readonly ScheduleOccurrence[],
 ): readonly (readonly (ScheduleOccurrence | null)[])[] {
   const first = occurrences[0];
@@ -222,7 +222,7 @@ function createWeeks(
   return Object.freeze(weeks);
 }
 
-function countShifts(
+export function countShifts(
   occurrences: readonly ScheduleOccurrence[],
 ): MonthlyScheduleCounts {
   const counts = { day: 0, night: 0, off: 0 };
@@ -232,6 +232,16 @@ function countShifts(
   }
 
   return Object.freeze(counts);
+}
+
+export function getScheduleName(config: ScheduleConfig): string {
+  if (config.kind === "custom") {
+    return "Custom cycle";
+  }
+
+  return config.presetId === "4-on-4-off"
+    ? "4 on / 4 off"
+    : "2-2-3 fixed shift";
 }
 
 export function createMonthlyCalendarView(
@@ -253,7 +263,7 @@ export function createMonthlyCalendarView(
       from,
       to,
       occurrences: expansionResult.value,
-      weeks: createWeeks(expansionResult.value),
+      weeks: createCalendarWeeks(expansionResult.value),
       counts: countShifts(expansionResult.value),
     }),
   });

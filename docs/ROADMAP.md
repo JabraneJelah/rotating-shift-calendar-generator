@@ -40,11 +40,13 @@ Exit criteria were met: preset and custom workflows use the Phase 2A API, URL re
 - Deterministic UIDs, injected UTC timestamps, escaped/folded text, safe filenames, and local Blob downloads
 - Unit, component, and browser coverage for copying, fallback, download content, cleanup, and mobile overflow
 
-## Phase 3B — remaining calendar output
+## Phase 3B — yearly view and printing (complete)
 
-- Year view and print layout
-- Year-oriented output decisions, without weakening the shipped monthly export contract
-- Expanded print-specific browser and accessibility coverage
+- Transient accessible Month/Year selector with preserved V1 monthly URL state
+- Single-expansion twelve-month overview, annual totals, and year navigation
+- Native active-view printing with portrait monthly and two-part landscape yearly CSS
+- Shared semantic calendar/legend presentation and mobile-to-desktop yearly layout
+- Unit, component, browser, print-media, timezone, and accessibility-oriented coverage
 
 ## Phase 4 — content and discovery
 

@@ -160,3 +160,19 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 
 **Reason:** Durable links existed before users had a clear, accessible way to obtain one, and clipboard permissions are not universally available.
 **Consequences:** Generated results expose a copy button that reuses the V1 codec and current visible month. Clipboard success/failure is announced temporarily; absence or rejection reveals a labelled read-only canonical URL. No native-share-only, social, server, or deprecated `execCommand` path is introduced.
+
+## D-026 — Year view is transient presentation state
+
+**Status:** Accepted
+
+**Reason:** Users need an annual overview without silently changing the shipped V1 sharing and visible-month export contract.
+
+**Consequences:** Year mode derives from the preserved monthly view, navigates years without URL mutation, and returns to that month. Generation, reload, and history restoration select Month. One annual domain expansion is grouped into twelve compact semantic tables and annual totals. Copy and ICS actions remain monthly; no V2 schema or yearly ICS behavior is introduced.
+
+## D-027 — Semantic active-view native printing
+
+**Status:** Accepted
+
+**Reason:** The browser already provides accessible print dialogs and PDF destinations, while the rendered semantic calendars are the most auditable print source.
+
+**Consequences:** A text-labelled action invokes `window.print()`. Print CSS hides non-result UI, requests portrait monthly output and two landscape six-month year pages, and preserves identity, totals, non-color cues, and legend. No DOM cloning, canvas, PDF/print library, generated PDF dependency, or pagination guarantee is introduced; browser and printer settings remain authoritative.

@@ -31,6 +31,12 @@ Enter a known or custom rotation once and receive a clear calendar that is easy 
 - Indexable explanatory pages for supported patterns and calculators
 - Local-first operation without an account or saved server data
 
+## Calendar output contract
+
+Generated schedules offer a detailed monthly view and a compact twelve-month overview. Switching to the year view is a presentation choice, not saved state: shared V1 links, reload, and history restoration return to the monthly view represented by the URL. Year navigation likewise does not mutate that URL.
+
+Copy and ICS actions continue to target the preserved visible month. The print action prints whichever view is active. Print CSS requests a portrait monthly page or a two-page landscape year split after six months, but browser and printer settings ultimately control pagination, margins, headers, scaling, and background graphics.
+
 ## Non-goals
 
 The MVP is not an employer roster, payroll or time-clock system. It will not assign multiple employees, negotiate swaps, track leave, provide legal or fatigue advice, or guarantee that a named pattern matches a particular employer's implementation. Accounts, authentication, payments, a database, a CMS, a backend API, ads, analytics, and localization are outside the current foundation.

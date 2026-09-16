@@ -61,6 +61,14 @@ The generator separates editable form values from validated generated state. Sub
 
 Initial and `popstate` queries are parsed only through `parseScheduleQuery`. Valid state is immediately reserialized through `serializeScheduleQuery`: manual generation uses `pushState`, while month navigation and canonicalization use `replaceState`. Empty and invalid queries leave a usable form. The server renders stable empty defaults, keeps the form disabled only until URL restoration completes after hydration, and does not make the page dynamic.
 
+## Yearly presentation and printing
+
+The yearly presentation helper receives the same validated configuration and a supported year. It performs one bounded `expandSchedule` call for January 1 through December 31, then partitions those immutable occurrences into twelve semantic month tables and derives annual totals. Shared table and legend components keep monthly and yearly meanings aligned while leaving all cycle calculation in the domain.
+
+View mode and year navigation are transient client presentation state. Selecting Year derives the year from the preserved monthly view; returning to Month restores that exact month. Neither operation changes the V1 URL. New generation, reload, and `popstate` restoration reset presentation to Month. `ScheduleActions` therefore continues to serialize and export the monthly view while its print button invokes the browser's native `window.print()` for the currently rendered view.
+
+Print output uses the same semantic result DOM rather than a cloned or separately calculated document. Global print CSS removes site chrome, configuration, view controls, and actions; it retains schedule identity, totals, tables, and the legend. Named pages request portrait monthly output and landscape yearly output, with the seventh yearly month starting a new page. Those CSS requests are best effort because browser and printer settings retain final pagination control.
+
 ## Configuration
 
 `NEXT_PUBLIC_SITE_URL` is parsed centrally in `src/lib/site.ts`. It must be an HTTP(S) origin without a path. Local development falls back to `http://localhost:3000`; production must provide the real origin. Secrets must never use the `NEXT_PUBLIC_` prefix or be committed.
