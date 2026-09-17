@@ -1,6 +1,6 @@
 # Schedule domain
 
-This document defines the schedule and optional personal-planner contracts through Phase 6A2. The base engine models repeating calendar-day categories, not employment policy or exact work times.
+This document defines the schedule and optional personal-planner contracts through Phase 6A3. The base engine models repeating calendar-day categories, not employment policy or exact work times.
 
 ## Terms
 
@@ -172,6 +172,14 @@ For explicit equal-time 24-hour shifts, gross is 1,440. Calculations are nominal
 
 Personal definitions are ephemeral through Phase 6A2. They do not enter V1 URLs, history state, copied links, `ScheduleConfig`, `ScheduleOccurrence`, or all-day ICS identity/content. Reload restores only the base V1 schedule. Definitions and aggregate effective statistics may become durable only through separately approved later phases.
 
+## Date exceptions and effective projection
+
+Phase 6A3 keeps each generated `ScheduleOccurrence` immutable and derives an effective date as `base occurrence → primary exception → additional work → note metadata`. A date has at most one primary exception (Replacement, Leave, Sick, or Training), one additional-work occurrence, and one normalized plain-text note of at most 500 characters. Replacement and Training reference validated working definitions and may replace Off. Leave and Sick replace only generated Day/Night work. Additional work references a working definition, never replaces the primary, and may coexist with every primary state. Removing all layers reveals the exact generated occurrence.
+
+A working date contains at least one effective working occurrence and is counted once even when primary and additional work coexist. Category, Training, Additional, and overnight measures count occurrences and intentionally overlap. Saturday/Sunday working dates are counted once. Timed occurrences contribute known nominal gross, break, and net minutes to their start date; an untimed occurrence marks totals incomplete while known subtotals remain available. Notes affect no calculation and are excluded from sharing, print, and ICS.
+
+Effective all-day export emits one primary event per date and a second event for additional work. Generated primary UIDs retain legacy identity; exception/additional roles use deterministic non-personal suffixes. No timed value, timezone, `TZID`, or `VTIMEZONE` is emitted.
+
 ## Deferred edge cases
 
-Timezone conversion, DST-adjusted elapsed duration, date exceptions, leave, sickness, training, additional work, schedule-wide hour totals, pay, employer-specific alternating rotations, and multiple shifts per date remain deferred. Monthly and complete-year ICS export still map base date-only occurrences to all-day events with an exclusive next-calendar-date end. Explicitly zoned timed export requires the separate Phase 6A4 contract without weakening the date-only model.
+Timezone conversion, DST-adjusted elapsed duration, recurring/range exceptions, multiple additional occurrences, pay, employer-specific alternating rotations, and split shifts remain deferred. Month and complete-year ICS exports remain all-day with exclusive next-calendar-date ends. Explicitly zoned timed export requires the separate Phase 6A4 contract without weakening the date-only model.

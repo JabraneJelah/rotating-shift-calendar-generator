@@ -61,6 +61,10 @@ The planner layer imports the public schedule types only to resolve an existing 
 
 `ScheduleGenerator` owns editable raw planner fields separately from the last successfully applied validated registry, following the same editable/generated boundary as the base form. A failed planner validation does not replace the last generated result. Browser history serializes only V1 base state; restoration deliberately resets ephemeral planner details.
 
+Phase 6A3 extends this planner boundary with validated date records, a pure effective projector, and pure statistics. Each record has at most one primary exception, one additional-work occurrence, and one note. The projector consumes an already expanded immutable base range plus the registry and exceptions; it alone applies precedence. Calendar components receive projected values and never reimplement exception rules. Statistics, effective next-work information, print, and advanced all-day export consume the same representation.
+
+Date-exception state remains in `ScheduleGenerator` memory and is never added to configuration, history, V1, storage, or server state. Month/year navigation preserves it; URL restoration discards it. A newly generated different base configuration clears date changes so a change is not silently reinterpreted against another rotation.
+
 ## Calendar export boundary
 
 `src/features/schedule/export/index.ts` is the calendar-export API. Its serializer consumes a validated configuration, an already generated complete month or complete year, the matching period identifier, and an injected basic UTC timestamp. It validates exact, ordered, gap-free period coverage but never expands a schedule or independently calculates cycle positions. It imports only the public schedule domain for canonical configuration identity and next-calendar-date arithmetic.
@@ -70,6 +74,8 @@ The pure serializer and its escaping/types modules do not import React, Next.js,
 `ScheduleActions` is nested under the existing `ScheduleGenerator` client graph. It uses the existing V1 codec to build a current-origin canonical link with visible-month state, owns Clipboard API feedback and the labelled manual-copy fallback, and invokes the export/download APIs. Dependency direction remains UI/browser effects → pure export → public domain; neither export formatting nor the domain imports UI code.
 
 Applied personal names, colors, labels, hours, breaks, and IDs are not passed to the export layer in Phase 6A2. Timed events require explicit IANA-zone behavior in Phase 6A4; optional wall-clock inputs never silently change the existing all-day actions or deterministic UIDs.
+
+Phase 6A3 retains the legacy serializer for ranges without date changes and adds a separate effective all-day serializer. It emits one primary event and, when present, one additional-work event per date. Generated primary identities remain compatible; exception roles receive deterministic non-personal identities. Notes are never passed to serialization. Both paths remain date-only and timezone-free.
 
 ## Rendering and state
 

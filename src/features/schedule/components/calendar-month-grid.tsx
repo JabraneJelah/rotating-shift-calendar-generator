@@ -5,7 +5,10 @@ import type {
   ShiftKind,
   WeekStart,
 } from "@/features/schedule/domain";
-import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
+import type {
+  EffectiveScheduleDate,
+  ShiftDefinitionRegistry,
+} from "@/features/schedule/planner";
 import {
   formatFullDate,
   getWeekdayLabels,
@@ -15,6 +18,7 @@ import {
   getShiftDisplay,
   SHIFT_COLOR_PRESENTATION,
 } from "@/features/schedule/presentation/planner-shift-presentation";
+import { presentEffectiveDate } from "@/features/schedule/presentation/effective-schedule-presentation";
 import { cn } from "@/lib/utils";
 
 type CalendarMonthGridProps = {
@@ -23,6 +27,7 @@ type CalendarMonthGridProps = {
   readonly weekStart: WeekStart;
   readonly compact?: boolean;
   readonly planner?: ShiftDefinitionRegistry | null;
+  readonly effectiveDates?: readonly EffectiveScheduleDate[];
 };
 
 export const shiftPresentation = {
@@ -37,8 +42,12 @@ export function CalendarMonthGrid({
   weekStart,
   compact = false,
   planner = null,
+  effectiveDates,
 }: CalendarMonthGridProps) {
   const weekdayLabels = getWeekdayLabels(weekStart);
+  const effectiveByDate = new Map(
+    effectiveDates?.map((value) => [value.date, value]),
+  );
 
   return (
     <table
@@ -79,18 +88,25 @@ export function CalendarMonthGrid({
 
               const presentation = shiftPresentation[occurrence.shift];
               const display = getShiftDisplay(occurrence.shift, planner);
+              const effective = effectiveByDate.get(occurrence.date);
+              const effectiveDisplay =
+                effective === undefined
+                  ? null
+                  : presentEffectiveDate(effective);
               const Icon = presentation.icon;
               const dayNumber = Number(occurrence.date.slice(-2));
               const timeSummary =
                 display.definition === null
                   ? null
                   : formatShiftTimeSummary(display.definition);
-              const fullLabel = `${formatFullDate(occurrence.date)} — ${display.name}${timeSummary === null ? "" : `, ${timeSummary}`}`;
+              const fullLabel = `${formatFullDate(occurrence.date)} — ${effectiveDisplay?.description ?? `${display.name}${timeSummary === null ? "" : `, ${timeSummary}`}`}`;
               const cellClassName =
-                display.definition === null
-                  ? presentation.className
-                  : SHIFT_COLOR_PRESENTATION[display.definition.color]
-                      .cellClassName;
+                effectiveDisplay !== null
+                  ? effectiveDisplay.cellClassName
+                  : display.definition === null
+                    ? presentation.className
+                    : SHIFT_COLOR_PRESENTATION[display.definition.color]
+                        .cellClassName;
 
               return (
                 <td
@@ -119,7 +135,9 @@ export function CalendarMonthGrid({
                     >
                       {dayNumber}
                     </span>
-                    {compact ? null : (
+                    {compact ||
+                    (effective !== undefined &&
+                      effective.primary.origin !== "generated") ? null : (
                       <Icon aria-hidden="true" className="size-3.5 sm:size-4" />
                     )}
                     <span
@@ -131,9 +149,27 @@ export function CalendarMonthGrid({
                       }
                     >
                       {compact
-                        ? display.shortLabel.slice(0, 1)
-                        : display.shortLabel}
+                        ? (
+                            effectiveDisplay?.shortLabel ?? display.shortLabel
+                          ).slice(0, 1)
+                        : (effectiveDisplay?.shortLabel ?? display.shortLabel)}
                     </span>
+                    {effectiveDisplay?.additionalLabel ? (
+                      <span
+                        aria-hidden="true"
+                        className="text-[0.46rem] leading-none font-bold"
+                      >
+                        +A
+                      </span>
+                    ) : null}
+                    {effectiveDisplay?.hasNote ? (
+                      <span
+                        aria-hidden="true"
+                        className="text-[0.46rem] leading-none"
+                      >
+                        {compact ? "•" : "Note"}
+                      </span>
+                    ) : null}
                   </time>
                 </td>
               );

@@ -12,6 +12,8 @@ Do not put secrets, private notes, access tokens, or sensitive personal data int
 
 Phase 6A2 personal details exist only in in-memory React state. They are not written to cookies, `localStorage`, IndexedDB, URLs, history payloads, ICS files, logs, analytics, or a server. A refresh discards them. Copied links disclose that only the base rotation is shared whenever private details have been applied.
 
+Phase 6A3 date exceptions and notes use the same in-memory boundary. Replacement, absence, Training, Additional work, and note values never enter URLs, history payloads, browser storage, logs, analytics, metadata, or network requests. Notes are normalized and bounded plain text rendered only through React; they are excluded from copied links, print, accessible calendar names, and ICS. Exception-aware ICS is an explicit local download that includes effective status labels but never note contents. Refresh discards all date changes.
+
 ## Input and output controls
 
 - Validate all URL, form, and environment input at its boundary with length and shape limits.

@@ -934,6 +934,96 @@ describe("schedule sharing and export actions", () => {
   });
 });
 
+describe("private date changes", () => {
+  it("combines Training, additional work, and a private note in the effective calendar", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+
+    fireEvent.click(screen.getByRole("button", { name: /add or edit date/i }));
+    fireEvent.change(screen.getByLabelText("Primary change"), {
+      target: { value: "training" },
+    });
+    fireEvent.click(
+      screen.getByLabelText(/add one additional-work occurrence/i),
+    );
+    fireEvent.change(screen.getByLabelText(/private personal note/i), {
+      target: { value: "Bring safety certificate" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save date change/i }));
+
+    expect(
+      screen.getByRole("cell", {
+        name: /october 1, 2026 — training — day shift; additional work: day shift; private note attached/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Monthly personal statistics")).toBeInTheDocument();
+    expect(
+      screen.getByText(/shared links include the base rotation/i),
+    ).toHaveTextContent(/date changes/i);
+    expect(
+      screen.queryByText("Bring safety certificate"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("rejects Leave on generated Off and keeps the generated cell", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("button", { name: /add or edit date/i }));
+    fireEvent.change(screen.getByLabelText(/^date$/i), {
+      target: { value: "2026-10-05" },
+    });
+    fireEvent.change(screen.getByLabelText("Primary change"), {
+      target: { value: "leave" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save date change/i }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /leave can only replace a scheduled working shift/i,
+    );
+    expect(
+      screen.getByRole("cell", { name: /monday, october 5, 2026 — off/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("removes one layer independently and restores the generated date", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("button", { name: /add or edit date/i }));
+    fireEvent.change(screen.getByLabelText("Primary change"), {
+      target: { value: "leave" },
+    });
+    fireEvent.click(
+      screen.getByLabelText(/add one additional-work occurrence/i),
+    );
+    fireEvent.change(screen.getByLabelText(/private personal note/i), {
+      target: { value: "private" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save date change/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /add or edit date/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /remove primary change/i }),
+    );
+    expect(screen.getByText(/effective:/i).parentElement).toHaveTextContent(
+      /day shift/i,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /restore generated schedule/i }),
+    );
+    expect(
+      screen.getByRole("cell", {
+        name: /thursday, october 1, 2026 — day shift/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Monthly personal statistics"),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("domain error presentation", () => {
   it("maps every current error code to user-facing copy", () => {
     expect(Object.keys(SCHEDULE_ERROR_MESSAGES)).toHaveLength(23);

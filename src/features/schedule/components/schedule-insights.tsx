@@ -1,18 +1,12 @@
-import type { DomainResult } from "@/features/schedule/domain";
-import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
 import { formatFullDate } from "@/features/schedule/presentation/calendar-view";
-import { getShiftDisplay } from "@/features/schedule/presentation/planner-shift-presentation";
-import type { ScheduleInsights as ScheduleInsightsValue } from "@/features/schedule/presentation/schedule-insights";
+import { presentEffectiveDate } from "@/features/schedule/presentation/effective-schedule-presentation";
+import type { EffectiveScheduleInsightsResult } from "@/features/schedule/presentation/schedule-insights";
 
 type ScheduleInsightsProps = {
-  readonly result: DomainResult<ScheduleInsightsValue>;
-  readonly planner?: ShiftDefinitionRegistry | null;
+  readonly result: EffectiveScheduleInsightsResult;
 };
 
-export function ScheduleInsights({
-  result,
-  planner = null,
-}: ScheduleInsightsProps) {
+export function ScheduleInsights({ result }: ScheduleInsightsProps) {
   return (
     <section
       aria-labelledby="schedule-insights-heading"
@@ -28,8 +22,7 @@ export function ScheduleInsights({
               Next schedule position
             </dt>
             <dd className="mt-1 font-semibold">
-              {getShiftDisplay(result.value.nextPosition.shift, planner).name}{" "}
-              tomorrow
+              {presentEffectiveDate(result.value.nextPosition).name} tomorrow
             </dd>
           </div>
           <div>
@@ -37,8 +30,9 @@ export function ScheduleInsights({
               Next working day
             </dt>
             <dd className="mt-1 font-semibold">
-              {getShiftDisplay(result.value.nextWorkingDay.shift, planner).name}{" "}
-              on {formatFullDate(result.value.nextWorkingDay.date)}
+              {result.value.nextWorkingDate === null
+                ? "No working date in the next 366 days"
+                : `${presentEffectiveDate(result.value.nextWorkingDate).name} on ${formatFullDate(result.value.nextWorkingDate.date)}`}
             </dd>
           </div>
         </dl>

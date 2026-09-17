@@ -56,6 +56,14 @@ Each visible editor has labelled name, short-label, curated-color, native time, 
 
 Edits remain drafts until Generate/Update is activated. Validation errors appear inline and in the established focusable summary; invalid edits preserve the last applied result. Reset restores default untimed Day/Night details without touching pattern, date, or week-start values. Applied calendars keep short labels in cells and move the full name/time/duration to accessible cell descriptions and a wrapping legend. Configuration controls remain hidden in print, while textual custom legends remain printable.
 
+## Private date changes and effective statistics
+
+Phase 6A3 adds one result-level `Add or edit date` action rather than interactive calendar cells. It opens a focused in-page editor with a native date field, generated/effective context, a primary-change selector, conditional definition choice, one Additional work control, and one plain-text private note. Save applies all layers atomically; Cancel discards drafts; primary, additional work, and note can be removed independently; Restore generated schedule removes every layer for the date.
+
+Leave and Sick are refused on generated Off dates. Replacement, Training, and Additional work may use the currently applied Day/Night definitions on Off. Calendar cells remain semantic table cells and use concise LV/S/TR/+A/Note text plus complete accessible descriptions. Full note text appears only in the editor and is hidden from print.
+
+Personal statistics appear only after private definitions or date changes exist. They distinguish unique working dates from occurrence counts, show absences/training/additional/weekend/overnight values, and label hour values as complete or known subtotals. Month statistics scope only the active month; annual statistics appear once above the year grid. The editor and statistics stack on phones and retain existing print and no-overflow behavior.
+
 ## Shipped share and calendar-file actions
 
 After a valid schedule is generated or restored, a compact action panel appears between the monthly summary and calendar grid. The primary generation workflow remains visually dominant. `Copy schedule link` copies the canonical V1 URL including the visible month and announces success in a polite live region. Success and error announcements clear after a short interval without animation or focus movement.

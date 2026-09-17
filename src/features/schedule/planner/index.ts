@@ -25,6 +25,7 @@ export type {
   ShiftDefinitionRegistryInput,
 } from "./shift-definitions";
 export type {
+  DateExceptionId,
   LocalTime,
   NominalShiftCalculation,
   PlannerError,
@@ -37,3 +38,32 @@ export type {
   ShiftDefinitionRegistry,
   ShiftTimeDetails,
 } from "./planner-types";
+export {
+  MAX_DATE_EXCEPTIONS,
+  MAX_PERSONAL_NOTE_LENGTH,
+  removeDateExceptionLayer,
+  upsertDateException,
+  validateDateException,
+  validateDateExceptionCollection,
+} from "./date-exceptions";
+export type {
+  AdditionalWorkOccurrence,
+  DateException,
+  DateExceptionInput,
+  PrimaryDateException,
+} from "./date-exceptions";
+export {
+  MAX_EFFECTIVE_PROJECTION_DAYS,
+  projectEffectiveSchedule,
+} from "./effective-schedule";
+export type {
+  EffectivePrimary,
+  EffectiveScheduleDate,
+  EffectiveWorkingOccurrence,
+} from "./effective-schedule";
+export {
+  calculateEffectiveStatistics,
+  calculateMonthlyEffectiveStatistics,
+  calculateYearlyEffectiveStatistics,
+} from "./effective-statistics";
+export type { EffectiveScheduleStatistics } from "./effective-statistics";

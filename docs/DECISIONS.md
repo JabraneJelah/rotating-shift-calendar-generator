@@ -268,3 +268,33 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** Workers can describe familiar shift hours without introducing inaccurate browser-timezone assumptions or changing the date-only engine.
 
 **Consequences:** `22:00 → 06:00` is 480 nominal minutes and `08:00 → 08:00` is invalid unless explicitly 24 hours. DST can change actual elapsed time and is disclosed. Existing ICS remains all-day; explicitly zoned timed export waits for Phase 6A4.
+
+## D-039 — Immutable base plus one effective projection
+
+**Status:** Accepted
+
+**Decision:** Store one primary exception, one additional-work occurrence, and one note per date outside the base configuration. Derive every effective calendar/statistic/insight/export value through one pure projector in primary-then-additional-then-note order.
+
+**Reason:** A single precedence implementation prevents calendar, totals, and export from disagreeing while preserving every date-only engine invariant.
+
+**Consequences:** `ScheduleOccurrence` and V1 remain unchanged. Leave/Sick require generated work; Replacement/Training/Additional may make Off worked. Restoration deletes planner layers and reveals the exact base occurrence.
+
+## D-040 — Effective totals retain known subtotals and explicit incompleteness
+
+**Status:** Accepted
+
+**Decision:** Count unique working dates separately from category occurrences and sum integer nominal minutes only for timed work. Any untimed work makes the total incomplete without discarding the known subtotal.
+
+**Reason:** Showing zero or a partial value as a complete total would be misleading.
+
+**Consequences:** Month/year panels label `Known` versus complete scheduled hours, name the untimed occurrence count, attribute overnight work to its start date, and disclose the DST/payroll limitation.
+
+## D-041 — Exception-aware ICS remains all-day and note-free
+
+**Status:** Accepted
+
+**Decision:** Keep the legacy serializer for unchanged schedules and add a separate effective all-day path for dates with planner changes. Emit a second event for Additional work and exclude notes.
+
+**Reason:** Users need an export matching the effective calendar without prematurely inventing timezone semantics or leaking private annotations.
+
+**Consequences:** Generated primary UIDs retain legacy identity; exception roles use deterministic non-personal suffixes. Timed ICS remains Phase 6A4.

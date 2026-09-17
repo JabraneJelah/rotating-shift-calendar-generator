@@ -30,6 +30,8 @@ Phase 5B2 extends V1 additively. Fixed preset URLs require `shift=day|night`; co
 
 Phase 6A2 personal shift names, labels, colors, times, breaks, and definition IDs are intentionally excluded from V1 query parameters, copied links, canonicals, metadata, and structured data. Reload and shared-link restoration recover only the compatible base rotation. No V2 schema, compressed payload, content route, or sitemap entry is introduced.
 
+Phase 6A3 date replacements, Leave, Sick, Training, Additional work, notes, and effective totals are likewise client-only state. They create no route, query parameter, canonical variant, metadata, structured data, or sitemap entry. Copy continues emitting only the compatible V1 base rotation.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

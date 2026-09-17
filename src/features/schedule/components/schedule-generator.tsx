@@ -26,8 +26,15 @@ import {
   type WorkingShiftKind,
 } from "@/features/schedule/domain";
 import {
+  calculateMonthlyEffectiveStatistics,
+  calculateYearlyEffectiveStatistics,
+  DEFAULT_SHIFT_DEFINITION_REGISTRY,
   isDefaultShiftDefinitionRegistry,
+  projectEffectiveSchedule,
+  removeDateExceptionLayer,
+  upsertDateException,
   validateShiftDefinitionRegistry,
+  type DateException,
   type ShiftDefinitionRegistry,
 } from "@/features/schedule/planner";
 import {
@@ -45,13 +52,14 @@ import {
   presentScheduleLinkErrors,
   type ScheduleFieldErrors,
 } from "@/features/schedule/presentation/schedule-error-messages";
-import { createScheduleInsights } from "@/features/schedule/presentation/schedule-insights";
+import { createEffectiveScheduleInsights } from "@/features/schedule/presentation/schedule-insights";
 import {
   presentPlannerErrors,
   type PlannerFieldErrors,
 } from "@/features/schedule/presentation/planner-error-messages";
 
 import { MonthlyCalendar } from "./monthly-calendar";
+import { DateExceptionEditor } from "./date-exception-editor";
 import { ScheduleActions } from "./schedule-actions";
 import { ScheduleForm, type ScheduleMode } from "./schedule-form";
 import { ScheduleInsights } from "./schedule-insights";
@@ -170,6 +178,9 @@ export function ScheduleGenerator() {
   const [generated, setGenerated] = useState<GeneratedScheduleState | null>(
     null,
   );
+  const [dateExceptions, setDateExceptions] = useState<
+    readonly DateException[]
+  >([]);
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("month");
   const [weekStart, setWeekStart] = useState<WeekStart>("monday");
   const [yearlyView, setYearlyView] = useState<YearlyCalendarView | null>(null);
@@ -281,6 +292,7 @@ export function ScheduleGenerator() {
       setShiftDetails(createDefaultEditableShiftDetails());
       setLinkErrors([]);
       setGenerated(null);
+      setDateExceptions([]);
       setViewMode("month");
       setWeekStart("monday");
       setYearlyView(null);
@@ -298,6 +310,7 @@ export function ScheduleGenerator() {
       setShiftDetails(createDefaultEditableShiftDetails());
       setLinkErrors(presentScheduleLinkErrors(parsedResult.errors));
       setGenerated(null);
+      setDateExceptions([]);
       setViewMode("month");
       setWeekStart("monday");
       setYearlyView(null);
@@ -316,6 +329,7 @@ export function ScheduleGenerator() {
     setForm(formStateFromConfig(config));
     setShiftDetails(createDefaultEditableShiftDetails());
     setPlannerErrors({});
+    setDateExceptions([]);
     commitSchedule(
       config,
       selectedMonth,
@@ -422,7 +436,11 @@ export function ScheduleGenerator() {
       ? null
       : plannerResult.value;
 
-    commitSchedule(
+    const baseChanged =
+      generated !== null &&
+      JSON.stringify(generated.config) !==
+        JSON.stringify(validationResult.value);
+    const committed = commitSchedule(
       validationResult.value,
       viewMonth,
       weekStart,
@@ -431,6 +449,9 @@ export function ScheduleGenerator() {
       `Schedule generated for ${viewMonth}.`,
       true,
     );
+    if (committed && baseChanged) {
+      setDateExceptions([]);
+    }
   }
 
   function handleMonthNavigation(viewMonth: ISOYearMonth) {
@@ -564,9 +585,35 @@ export function ScheduleGenerator() {
   }
 
   const submissionMessages = formErrorMessages(fieldErrors, generalErrors);
+  const effectiveRegistry =
+    generated?.planner ?? DEFAULT_SHIFT_DEFINITION_REGISTRY;
+  const effectiveMonthResult =
+    generated === null
+      ? null
+      : projectEffectiveSchedule(
+          generated.view.occurrences,
+          effectiveRegistry,
+          dateExceptions,
+        );
+  const effectiveYearResult =
+    yearlyView === null
+      ? null
+      : projectEffectiveSchedule(
+          yearlyView.occurrences,
+          effectiveRegistry,
+          dateExceptions,
+        );
+  const hasPrivatePlannerState =
+    generated !== null &&
+    (generated.planner !== null || dateExceptions.length > 0);
   const insightResult =
     generated !== null && today !== null
-      ? createScheduleInsights(generated.config, today)
+      ? createEffectiveScheduleInsights(
+          generated.config,
+          today,
+          effectiveRegistry,
+          dateExceptions,
+        )
       : null;
 
   return (
@@ -691,27 +738,64 @@ export function ScheduleGenerator() {
             value={viewMode}
             weekStart={weekStart}
           />
+          <DateExceptionEditor
+            config={generated.config}
+            exceptions={dateExceptions}
+            initialDate={generated.view.from}
+            onApply={(value) => {
+              setDateExceptions((current) =>
+                upsertDateException(current, value),
+              );
+              setStatusMessage(`Private date change saved for ${value.date}.`);
+            }}
+            onRemove={(date, layer) => {
+              setDateExceptions((current) =>
+                removeDateExceptionLayer(current, date, layer),
+              );
+              setStatusMessage(
+                layer === "all"
+                  ? `Generated schedule restored for ${date}.`
+                  : `Private ${layer === "additionalWork" ? "additional work" : layer} removed for ${date}.`,
+              );
+            }}
+            registry={effectiveRegistry}
+          />
           <ScheduleActions
             activeView={viewMode}
             config={generated.config}
+            effectiveMonth={
+              effectiveMonthResult?.ok ? effectiveMonthResult.value : undefined
+            }
+            effectiveYear={
+              effectiveYearResult?.ok ? effectiveYearResult.value : undefined
+            }
+            hasPrivateDateChanges={dateExceptions.length > 0}
             hasPrivateShiftDetails={generated.planner !== null}
             onPrint={() => window.print()}
             view={generated.view}
             weekStart={weekStart}
             yearlyView={yearlyView}
           />
-          {insightResult ? (
-            <ScheduleInsights
-              planner={generated.planner}
-              result={insightResult}
-            />
-          ) : null}
+          {insightResult ? <ScheduleInsights result={insightResult} /> : null}
           {viewMode === "month" ? (
             <MonthlyCalendar
               config={generated.config}
               headingRef={resultHeadingRef}
               onNavigate={handleMonthNavigation}
               planner={generated.planner}
+              effectiveDates={
+                hasPrivatePlannerState && effectiveMonthResult?.ok
+                  ? effectiveMonthResult.value
+                  : undefined
+              }
+              statistics={
+                hasPrivatePlannerState && effectiveMonthResult?.ok
+                  ? calculateMonthlyEffectiveStatistics(
+                      effectiveMonthResult.value,
+                      generated.view.viewMonth,
+                    )
+                  : null
+              }
               view={generated.view}
             />
           ) : yearlyView ? (
@@ -720,6 +804,19 @@ export function ScheduleGenerator() {
               headingRef={resultHeadingRef}
               onNavigate={handleYearNavigation}
               planner={generated.planner}
+              effectiveDates={
+                hasPrivatePlannerState && effectiveYearResult?.ok
+                  ? effectiveYearResult.value
+                  : undefined
+              }
+              statistics={
+                hasPrivatePlannerState && effectiveYearResult?.ok
+                  ? calculateYearlyEffectiveStatistics(
+                      effectiveYearResult.value,
+                      yearlyView.year,
+                    )
+                  : null
+              }
               view={yearlyView}
             />
           ) : null}

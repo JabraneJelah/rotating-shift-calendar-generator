@@ -2,7 +2,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ISOYearMonth, ScheduleConfig } from "@/features/schedule/domain";
-import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
+import type {
+  EffectiveScheduleDate,
+  EffectiveScheduleStatistics,
+  ShiftDefinitionRegistry,
+} from "@/features/schedule/planner";
 import {
   getAdjacentViewMonth,
   getScheduleName,
@@ -10,6 +14,7 @@ import {
 } from "@/features/schedule/presentation/calendar-view";
 
 import { CalendarMonthGrid } from "./calendar-month-grid";
+import { PersonalStatistics } from "./personal-statistics";
 import { ShiftLegend } from "./shift-legend";
 
 type MonthlyCalendarProps = {
@@ -18,6 +23,8 @@ type MonthlyCalendarProps = {
   readonly headingRef: React.RefObject<HTMLHeadingElement | null>;
   readonly onNavigate: (viewMonth: ISOYearMonth) => void;
   readonly planner?: ShiftDefinitionRegistry | null;
+  readonly effectiveDates?: readonly EffectiveScheduleDate[];
+  readonly statistics?: EffectiveScheduleStatistics | null;
 };
 
 export function MonthlyCalendar({
@@ -26,6 +33,8 @@ export function MonthlyCalendar({
   headingRef,
   onNavigate,
   planner = null,
+  effectiveDates,
+  statistics = null,
 }: MonthlyCalendarProps) {
   const previousMonth = getAdjacentViewMonth(view.viewMonth, -1);
   const nextMonth = getAdjacentViewMonth(view.viewMonth, 1);
@@ -103,9 +112,9 @@ export function MonthlyCalendar({
         </div>
         {(
           [
-            ["Day", view.counts.day],
-            ["Night", view.counts.night],
-            ["Off", view.counts.off],
+            [statistics === null ? "Day" : "Base Day", view.counts.day],
+            [statistics === null ? "Night" : "Base Night", view.counts.night],
+            [statistics === null ? "Off" : "Base Off", view.counts.off],
           ] as const
         ).map(([label, count]) => (
           <div className="bg-muted/55 rounded-xl p-3 text-center" key={label}>
@@ -131,9 +140,13 @@ export function MonthlyCalendar({
           weeks={view.weeks}
           weekStart={view.weekStart}
           planner={planner}
+          effectiveDates={effectiveDates}
         />
       </div>
-      <ShiftLegend planner={planner} />
+      <ShiftLegend planner={planner} effectiveDates={effectiveDates} />
+      {statistics === null ? null : (
+        <PersonalStatistics scope="Monthly" statistics={statistics} />
+      )}
     </section>
   );
 }

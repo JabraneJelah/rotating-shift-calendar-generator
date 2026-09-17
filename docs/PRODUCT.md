@@ -32,6 +32,8 @@ Enter a known or custom rotation once and receive a clear calendar that is easy 
 - Indexable explanatory pages for supported patterns and calculators
 - Local-first operation without an account or saved server data
 - Optional session-only Day/Night names, short labels, curated colors, and nominal shift hours without changing the base rotation
+- Private one-date replacement, Leave, Sick, Training, additional-work, and note layers without mutating the repeating rotation
+- Effective month/year statistics with explicit incomplete-time semantics
 
 ## Supported preset library
 
@@ -45,7 +47,9 @@ Generated schedules offer a detailed monthly view and a compact twelve-month ove
 
 One shared insight panel names tomorrow's schedule position and the next Day/Night working occurrence. Month and year summaries count worked Saturday/Sunday dates, not complete weekends. Separate ICS actions export the preserved visible month or the actively displayed complete year; exports remain date-only and include Day, Night, and Off events. The print action prints whichever view is active. Print CSS requests a portrait monthly page or a two-page landscape year split after six months, but browser and printer settings ultimately control pagination, margins, headers, scaling, and background graphics.
 
-An optional, initially collapsed Shift details section may decorate generated Day and Night occurrences with a personal name, 1–4 character label, curated color, and optional local start/end time and unpaid break. These details use nominal wall-clock minutes: an earlier end crosses midnight, equal times require an explicit 24-hour choice, and a break must be shorter than the gross duration. They do not alter the generated date category, are not persisted after reload, and are not included in copied links or the existing all-day exports. Schedule-wide hour totals and date exceptions wait for Phase 6A3; zoned timed ICS waits for Phase 6A4.
+An optional, initially collapsed Shift details section may decorate generated Day and Night occurrences with a personal name, 1–4 character label, curated color, and optional local start/end time and unpaid break. These details use nominal wall-clock minutes: an earlier end crosses midnight, equal times require an explicit 24-hour choice, and a break must be shorter than the gross duration.
+
+Phase 6A3 adds one-date exceptions above the base schedule. Replacement and Training are working primaries; Leave and Sick replace only scheduled working dates; one additional-work occurrence may coexist with any primary; one plain-text private note is metadata only. Effective month/year statistics count working dates once, occurrences by semantic category, absences, Training, Additional work, weekend working dates, overnight occurrences, and known nominal gross/break/net minutes. Missing times produce an explicitly incomplete subtotal. Exception-aware exports remain all-day and exclude notes. Personal state is not persisted or copied into links; zoned timed ICS waits for Phase 6A4.
 
 ## Non-goals
 

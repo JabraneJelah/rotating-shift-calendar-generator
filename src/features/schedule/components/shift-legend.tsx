@@ -1,6 +1,7 @@
 import type { ShiftKind } from "@/features/schedule/domain";
 import {
   calculateNominalShift,
+  type EffectiveScheduleDate,
   type ShiftDefinitionRegistry,
 } from "@/features/schedule/planner";
 import { SHIFT_LABELS } from "@/features/schedule/presentation/calendar-view";
@@ -16,9 +17,23 @@ import { shiftPresentation } from "./calendar-month-grid";
 
 type ShiftLegendProps = {
   readonly planner?: ShiftDefinitionRegistry | null;
+  readonly effectiveDates?: readonly EffectiveScheduleDate[];
 };
 
-export function ShiftLegend({ planner = null }: ShiftLegendProps) {
+export function ShiftLegend({
+  planner = null,
+  effectiveDates,
+}: ShiftLegendProps) {
+  const primaryKinds = new Set(
+    effectiveDates?.map(({ primary }) => primary.kind),
+  );
+  const hasTraining = effectiveDates?.some(
+    ({ primary }) => primary.kind === "work" && primary.origin === "training",
+  );
+  const hasAdditional = effectiveDates?.some(
+    ({ additionalWork }) => additionalWork !== null,
+  );
+  const hasNote = effectiveDates?.some(({ note }) => note !== null);
   return (
     <div
       className="shift-legend mt-5 flex flex-wrap gap-x-5 gap-y-2"
@@ -71,6 +86,23 @@ export function ShiftLegend({ planner = null }: ShiftLegendProps) {
           </span>
         );
       })}
+      {primaryKinds.has("leave") ? (
+        <span className="text-sm font-semibold">LV — Leave</span>
+      ) : null}
+      {primaryKinds.has("sick") ? (
+        <span className="text-sm font-semibold">S — Sick</span>
+      ) : null}
+      {hasTraining ? (
+        <span className="text-sm font-semibold">TR — Training</span>
+      ) : null}
+      {hasAdditional ? (
+        <span className="text-sm font-semibold">+A — Additional work</span>
+      ) : null}
+      {hasNote ? (
+        <span className="text-sm font-semibold">
+          Note — Private note attached (contents hidden)
+        </span>
+      ) : null}
     </div>
   );
 }

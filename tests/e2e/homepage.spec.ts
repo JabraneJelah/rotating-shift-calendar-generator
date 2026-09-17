@@ -261,6 +261,62 @@ test("applies private overnight shift details but drops them on reload", async (
   ).toHaveCount(0);
 });
 
+test("applies, exports, prints, and forgets private date changes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /add or edit date/i }).click();
+
+  await page.getByLabel("Primary change").selectOption("leave");
+  await page.getByLabel(/add one additional-work occurrence/i).check();
+  await page
+    .getByLabel(/private personal note/i)
+    .fill("Private appointment note");
+  await page.getByRole("button", { name: /save date change/i }).focus();
+  await page.keyboard.press("Enter");
+
+  await expect(
+    page.getByRole("cell", {
+      name: /october 1, 2026 — leave; additional work: day shift; private note attached/i,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Monthly personal statistics")).toBeVisible();
+  await expect(
+    page.getByText(/shared links include the base rotation/i),
+  ).toContainText(/date changes/i);
+  expect(page.url()).not.toMatch(/leave|appointment|additional/i);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /export this month/i }).click();
+  const download = await downloadPromise;
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const content = await readFile(downloadPath!, "utf8");
+  expect(content).toContain("SUMMARY:Leave");
+  expect(content).toContain("SUMMARY:Additional Work — Day shift");
+  expect(content).not.toContain("Private appointment note");
+  expect(content.match(/BEGIN:VEVENT/g)).toHaveLength(32);
+
+  await page.getByRole("button", { name: /add or edit date/i }).click();
+  await expect(page.getByLabel(/private personal note/i)).toHaveValue(
+    "Private appointment note",
+  );
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByLabel(/private personal note/i)).toBeHidden();
+  await expect(page.getByText("Monthly personal statistics")).toBeVisible();
+  await page.emulateMedia({ media: "screen" });
+
+  await page.reload();
+  await expect(
+    page.getByRole("cell", {
+      name: /thursday, october 1, 2026 — day shift/i,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Monthly personal statistics")).toHaveCount(0);
+});
+
 test("copies a canonical navigated schedule link and restores it", async ({
   page,
 }) => {
@@ -664,6 +720,11 @@ for (const width of [320, 390, 768, 1024, 1440]) {
     await expect(
       page.getByRole("table", { name: /october 2026/i }),
     ).toBeVisible();
+
+    if (width === 320) {
+      await page.getByRole("button", { name: /add or edit date/i }).click();
+      await expect(page.getByLabel("Primary change")).toBeVisible();
+    }
 
     await page.getByRole("radio", { name: "Year" }).check();
     await expect(page.getByRole("table")).toHaveCount(12);

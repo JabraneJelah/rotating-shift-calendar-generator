@@ -95,9 +95,14 @@ Exit criteria were met: formatting, lint, type checking, all 199 unit/component 
 - Custom accessible calendar/legend presentation without aggregate hours
 - Ephemeral private details excluded from V1 sharing and unchanged all-day ICS
 
-### Phase 6A3 — exceptions, effective projections, and statistics (planned)
+### Phase 6A3 — exceptions, effective projections, and statistics (complete)
 
-Date replacements, leave/sick/training/additional-work semantics, restoration, and aggregate effective statistics require a separate implementation plan.
+- One-date Replacement, Leave, Sick, Training, Additional work, note, independent removal, and full restoration
+- One pure effective projection shared by calendars, next-work information, weekend counts, print, and all-day export
+- Scoped monthly/yearly occurrence, absence, weekend, overnight, and nominal-minute statistics with incomplete-time states
+- Session-only editor with base-only V1 sharing, note-free all-day ICS, and no persistence
+
+Exit criteria were met: formatting, lint, type checking, all 265 unit/component tests, 251 schedule tests in UTC and America/New_York, all 41 browser tests, and the production build passed. Effective month/year views, accessibility, privacy, all-day exports, printing, and responsive layouts are covered without dependency, route, sitemap, storage, or V1 changes.
 
 ### Phase 6A4 — explicitly zoned timed ICS (planned)
 
@@ -105,7 +110,7 @@ Timed export requires an explicit IANA timezone, DST policy, `VTIMEZONE`, and cl
 
 ## Phase 6B — local persistence, backup, and offline use (planned)
 
-IndexedDB saved planners, versioned JSON backup/import, and PWA/offline behavior remain separate. Phase 6A2 introduces no browser storage.
+IndexedDB saved planners, versioned JSON backup/import, and PWA/offline behavior remain separate. Phases 6A2–6A3 introduce no browser storage.
 
 ## Later evaluation
 

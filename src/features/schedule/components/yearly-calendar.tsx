@@ -2,7 +2,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ScheduleConfig } from "@/features/schedule/domain";
-import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
+import type {
+  EffectiveScheduleDate,
+  EffectiveScheduleStatistics,
+  ShiftDefinitionRegistry,
+} from "@/features/schedule/planner";
 import { getScheduleName } from "@/features/schedule/presentation/calendar-view";
 import {
   getAdjacentYear,
@@ -10,6 +14,7 @@ import {
 } from "@/features/schedule/presentation/yearly-calendar-view";
 
 import { CalendarMonthGrid } from "./calendar-month-grid";
+import { PersonalStatistics } from "./personal-statistics";
 import { ShiftLegend } from "./shift-legend";
 
 type YearlyCalendarProps = {
@@ -18,6 +23,8 @@ type YearlyCalendarProps = {
   readonly headingRef: React.RefObject<HTMLHeadingElement | null>;
   readonly onNavigate: (year: number) => void;
   readonly planner?: ShiftDefinitionRegistry | null;
+  readonly effectiveDates?: readonly EffectiveScheduleDate[];
+  readonly statistics?: EffectiveScheduleStatistics | null;
 };
 
 export function YearlyCalendar({
@@ -26,6 +33,8 @@ export function YearlyCalendar({
   headingRef,
   onNavigate,
   planner = null,
+  effectiveDates,
+  statistics = null,
 }: YearlyCalendarProps) {
   const previousYear = getAdjacentYear(view.year, -1);
   const nextYear = getAdjacentYear(view.year, 1);
@@ -133,6 +142,10 @@ export function YearlyCalendar({
         </div>
       </dl>
 
+      {statistics === null ? null : (
+        <PersonalStatistics scope="Yearly" statistics={statistics} />
+      )}
+
       <div
         className="year-grid mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
         data-calendar-container
@@ -148,12 +161,15 @@ export function YearlyCalendar({
               weeks={month.weeks}
               weekStart={view.weekStart}
               planner={planner}
+              effectiveDates={effectiveDates?.filter((date) =>
+                date.date.startsWith(`${month.viewMonth}-`),
+              )}
             />
           </article>
         ))}
       </div>
 
-      <ShiftLegend planner={planner} />
+      <ShiftLegend planner={planner} effectiveDates={effectiveDates} />
     </section>
   );
 }

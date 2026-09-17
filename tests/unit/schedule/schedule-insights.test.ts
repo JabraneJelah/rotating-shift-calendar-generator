@@ -6,7 +6,14 @@ import {
   type ISODate,
   type ScheduleConfig,
 } from "@/features/schedule/domain";
-import { createScheduleInsights } from "@/features/schedule/presentation/schedule-insights";
+import {
+  DEFAULT_SHIFT_DEFINITION_REGISTRY,
+  validateDateException,
+} from "@/features/schedule/planner";
+import {
+  createEffectiveScheduleInsights,
+  createScheduleInsights,
+} from "@/features/schedule/presentation/schedule-insights";
 
 function date(value: string): ISODate {
   const result = parseISODate(value);
@@ -21,6 +28,37 @@ function config(value: unknown): ScheduleConfig {
 }
 
 describe("schedule insights", () => {
+  it("uses additional work and primary exceptions for the next working date", () => {
+    const schedule = config({
+      kind: "custom",
+      version: 1,
+      startDate: "2026-09-17",
+      cycle: ["day", "off", "off", "night"],
+    });
+    const additional = validateDateException(
+      {
+        id: "additional-2026-09-18",
+        date: "2026-09-18",
+        additionalWork: { definitionId: "builtin-night" },
+      },
+      DEFAULT_SHIFT_DEFINITION_REGISTRY,
+    );
+    if (!additional.ok) throw new Error("fixture");
+    const result = createEffectiveScheduleInsights(
+      schedule,
+      date("2026-09-17"),
+      DEFAULT_SHIFT_DEFINITION_REGISTRY,
+      [additional.value],
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        nextPosition: { primary: { kind: "off" }, isWorkingDate: true },
+        nextWorkingDate: { date: "2026-09-18" },
+      },
+    });
+  });
+
   it("separates tomorrow's schedule position from the next working day", () => {
     const result = createScheduleInsights(
       config({

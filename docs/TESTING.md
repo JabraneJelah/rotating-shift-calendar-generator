@@ -11,6 +11,7 @@ Preset tests assert every exact full sequence, definition kind, count, anchor po
 - **ICS unit tests:** explicit RFC 5545 envelope, CRLF, date-only boundaries, exclusive ends, summaries, ordering, deterministic identity, injected timestamps, escaping, UTF-8 folding, month/year filename and MIME behavior, exact 365/366-event scope, and typed invalid-input behavior.
 - **Planner-domain tests:** Node-environment checks for strict `HH:mm`, nominal same-day/overnight/24-hour arithmetic, break rules, immutable definition registries, IDs, limits, categories, curated colors, and machine-readable failures. The same planner/schedule suite runs under UTC and America/New_York to prove timezone independence.
 - **Planner UI tests:** collapsed disclosure, fixed/rotating/custom visibility, editable/applied separation, accessible errors, custom calendar/legend presentation, reset, private sharing, reload loss, all-day export regression, print, keyboard use, and responsive overflow.
+- **Effective-planner tests:** exception cardinality and references, Leave/Sick restrictions, precedence, restoration, base immutability, scoped month/year statistics, incomplete time, effective insights/weekends, deterministic all-day export roles, note exclusion, editor focus/removal, print privacy, and refresh loss.
 - **Build and static checks:** strict TypeScript, ESLint, Prettier, and the production build are required checks.
 
 ## Commands
@@ -40,6 +41,8 @@ Week-start tests prove omission preserves legacy Monday output, `ws=sun` round-t
 Date-only tests must not rely on the machine's local zone. The domain suite should run under at least `TZ=UTC` and `TZ=America/New_York` when the environment permits, with identical results. Daylight-saving-adjacent dates are calendar days and must not be skipped or duplicated.
 
 Pure planner tests use the Node test environment and must not rely on React, Next.js, DOM/browser globals, locale formatting, timezone conversion, or JavaScript `Date`.
+
+Effective projection tests must distinguish unique worked dates from working occurrences, attribute overnight minutes to the start date, verify known subtotals when any work is untimed, and run identically under UTC and America/New_York. No-exception effective ICS must remain byte-equivalent to the legacy serializer; notes must never appear in ICS or print assertions.
 
 Every bug fix should add the smallest regression test at the lowest useful layer. Do not claim a command passed unless it was run in the current change.
 

@@ -11,8 +11,10 @@ import {
 import {
   downloadICSFile,
   formatICSUtcTimestamp,
+  generateEffectiveICS,
   generateICS,
 } from "@/features/schedule/export";
+import type { EffectiveScheduleDate } from "@/features/schedule/planner";
 import type { MonthlyCalendarView } from "@/features/schedule/presentation/calendar-view";
 import type { YearlyCalendarView } from "@/features/schedule/presentation/yearly-calendar-view";
 
@@ -24,6 +26,9 @@ type ScheduleActionsProps = {
   readonly activeView: "month" | "year";
   readonly onPrint: () => void;
   readonly hasPrivateShiftDetails?: boolean;
+  readonly hasPrivateDateChanges?: boolean;
+  readonly effectiveMonth?: readonly EffectiveScheduleDate[];
+  readonly effectiveYear?: readonly EffectiveScheduleDate[];
 };
 
 type ActionStatus = {
@@ -39,6 +44,9 @@ export function ScheduleActions({
   yearlyView,
   weekStart,
   hasPrivateShiftDetails = false,
+  hasPrivateDateChanges = false,
+  effectiveMonth,
+  effectiveYear,
 }: ScheduleActionsProps) {
   const [status, setStatus] = useState<ActionStatus | null>(null);
   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
@@ -118,13 +126,23 @@ export function ScheduleActions({
   }
 
   function handleMonthDownload() {
-    const result = generateICS({
-      calendarName: "Shift Calendar",
-      config,
-      occurrences: view.occurrences,
-      viewMonth: view.viewMonth,
-      generatedAt: formatICSUtcTimestamp(new Date()),
-    });
+    const generatedAt = formatICSUtcTimestamp(new Date());
+    const result =
+      hasPrivateDateChanges && effectiveMonth !== undefined
+        ? generateEffectiveICS({
+            calendarName: "Shift Calendar",
+            config,
+            dates: effectiveMonth,
+            viewMonth: view.viewMonth,
+            generatedAt,
+          })
+        : generateICS({
+            calendarName: "Shift Calendar",
+            config,
+            occurrences: view.occurrences,
+            viewMonth: view.viewMonth,
+            generatedAt,
+          });
 
     if (!result.success) {
       showTemporaryStatus({
@@ -157,13 +175,23 @@ export function ScheduleActions({
       return;
     }
 
-    const result = generateICS({
-      calendarName: "Shift Calendar",
-      config,
-      occurrences: yearlyView.occurrences,
-      year: yearlyView.year,
-      generatedAt: formatICSUtcTimestamp(new Date()),
-    });
+    const generatedAt = formatICSUtcTimestamp(new Date());
+    const result =
+      hasPrivateDateChanges && effectiveYear !== undefined
+        ? generateEffectiveICS({
+            calendarName: "Shift Calendar",
+            config,
+            dates: effectiveYear,
+            year: yearlyView.year,
+            generatedAt,
+          })
+        : generateICS({
+            calendarName: "Shift Calendar",
+            config,
+            occurrences: yearlyView.occurrences,
+            year: yearlyView.year,
+            generatedAt,
+          });
 
     if (!result.success) {
       showTemporaryStatus({
@@ -200,10 +228,16 @@ export function ScheduleActions({
         Copy a restorable schedule link or export an all-day calendar file.
         Printing uses the active {activeView} view.
       </p>
-      {hasPrivateShiftDetails ? (
+      {hasPrivateShiftDetails || hasPrivateDateChanges ? (
         <p className="mt-2 text-sm font-semibold">
           Shared links include the base rotation but not your private shift
-          details.
+          details or date changes.
+        </p>
+      ) : null}
+      {hasPrivateDateChanges ? (
+        <p className="text-muted-foreground mt-1 text-xs">
+          Calendar files include effective date changes as all-day events.
+          Private notes are excluded.
         </p>
       ) : null}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">

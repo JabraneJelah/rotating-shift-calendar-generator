@@ -1,9 +1,13 @@
 declare const localTimeBrand: unique symbol;
 declare const shiftDefinitionIdBrand: unique symbol;
+declare const dateExceptionIdBrand: unique symbol;
 
 export type LocalTime = string & { readonly [localTimeBrand]: true };
 export type ShiftDefinitionId = string & {
   readonly [shiftDefinitionIdBrand]: true;
+};
+export type DateExceptionId = string & {
+  readonly [dateExceptionIdBrand]: true;
 };
 
 export type ShiftCategory = "day" | "evening" | "night" | "other";
@@ -63,7 +67,25 @@ export type PlannerErrorCode =
   | "MISSING_DAY_DEFINITION"
   | "MISSING_NIGHT_DEFINITION"
   | "INVALID_DAY_DEFINITION"
-  | "INVALID_NIGHT_DEFINITION";
+  | "INVALID_NIGHT_DEFINITION"
+  | "INVALID_EXCEPTION_DATE"
+  | "UNSUPPORTED_EXCEPTION_YEAR"
+  | "INVALID_EXCEPTION_IDENTIFIER"
+  | "DUPLICATE_EXCEPTION_IDENTIFIER"
+  | "DUPLICATE_EXCEPTION_DATE"
+  | "MULTIPLE_PRIMARY_EXCEPTIONS"
+  | "MULTIPLE_ADDITIONAL_WORK_OCCURRENCES"
+  | "INVALID_PRIMARY_EXCEPTION_TYPE"
+  | "MISSING_SHIFT_DEFINITION_REFERENCE"
+  | "UNKNOWN_SHIFT_DEFINITION_REFERENCE"
+  | "LEAVE_ON_OFF"
+  | "SICK_ON_OFF"
+  | "INVALID_NOTE_TYPE"
+  | "EMPTY_NORMALIZED_NOTE"
+  | "NOTE_TOO_LONG"
+  | "UNSUPPORTED_OCCURRENCE_COMBINATION"
+  | "PROJECTION_RANGE_TOO_LARGE"
+  | "INVALID_BASE_OCCURRENCE";
 
 export type PlannerError = {
   readonly code: PlannerErrorCode;
