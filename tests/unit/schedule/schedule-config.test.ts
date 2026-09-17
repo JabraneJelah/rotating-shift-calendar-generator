@@ -171,6 +171,37 @@ describe("version-1 schedule query codec", () => {
     });
   });
 
+  it("keeps Monday implicit and round-trips Sunday presentation state", () => {
+    const monday = serializeScheduleQuery({
+      config: {
+        kind: "preset",
+        version: 1,
+        presetId: "4-on-4-off",
+        startDate: "2026-10-01",
+        workingShift: "day",
+      },
+      viewMonth: "2026-10",
+      weekStart: "monday",
+    });
+    const sundayQuery = `${presetCanonical}&m=2026-10&ws=sun`;
+    const sunday = parseScheduleQuery(sundayQuery);
+
+    expect(monday).toEqual({
+      ok: true,
+      value: `${presetCanonical}&m=2026-10`,
+    });
+    expect(sunday).toMatchObject({
+      ok: true,
+      value: { weekStart: "sunday" },
+    });
+    if (sunday.ok) {
+      expect(serializeScheduleQuery(sunday.value)).toEqual({
+        ok: true,
+        value: sundayQuery,
+      });
+    }
+  });
+
   it("canonicalizes valid noncanonical parameter ordering", () => {
     const parsed = parseScheduleQuery(
       "shift=day&s=2026-10-01&p=4-on-4-off&kind=preset&v=1",
@@ -216,6 +247,14 @@ describe("version-1 schedule query codec", () => {
       "INVALID_VIEW_MONTH",
     ],
     ["v=1&kind=custom&s=2026-10-01&cycle=o,o", "NO_WORKING_SHIFT"],
+    [
+      "v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&ws=mon",
+      "INVALID_CONFIGURATION",
+    ],
+    [
+      "v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&ws=sun&ws=sun",
+      "DUPLICATE_PARAMETER",
+    ],
   ])("rejects malformed query %s", (query, code) => {
     expectError(parseScheduleQuery(query), code);
   });

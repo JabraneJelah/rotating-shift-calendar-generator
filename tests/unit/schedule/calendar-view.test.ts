@@ -9,10 +9,13 @@ import {
 } from "@/features/schedule/domain";
 import {
   createMonthlyCalendarView,
+  createCalendarWeeks,
+  countWeekendDates,
   formatFullDate,
   formatMonthLabel,
   getAdjacentViewMonth,
   getMondayFirstWeekdayIndex,
+  getWeekdayLabels,
   getMonthRange,
   getViewMonthFromDate,
 } from "@/features/schedule/presentation/calendar-view";
@@ -67,6 +70,60 @@ describe("calendar view helpers", () => {
   it("uses Monday as weekday index zero", () => {
     expect(getMondayFirstWeekdayIndex(validDate("2026-10-05"))).toBe(0);
     expect(getMondayFirstWeekdayIndex(validDate("2026-10-04"))).toBe(6);
+  });
+
+  it("rotates headings and complete rows for Sunday-first presentation", () => {
+    const monday = createMonthlyCalendarView(
+      presetConfig(),
+      validMonth("2026-10"),
+      "monday",
+    );
+    const sunday = createMonthlyCalendarView(
+      presetConfig(),
+      validMonth("2026-10"),
+      "sunday",
+    );
+
+    if (!monday.ok || !sunday.ok) {
+      throw new Error("Expected both week-start modes to render.");
+    }
+
+    expect(getWeekdayLabels("monday").short).toEqual([
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun",
+    ]);
+    expect(getWeekdayLabels("sunday").short).toEqual([
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+    ]);
+    expect(monday.value.weeks[0]?.slice(0, 3)).toEqual([null, null, null]);
+    expect(sunday.value.weeks[0]?.slice(0, 4)).toEqual([
+      null,
+      null,
+      null,
+      null,
+    ]);
+    expect(sunday.value.weeks.flat().filter((value) => value !== null)).toEqual(
+      sunday.value.occurrences,
+    );
+    expect(
+      new Set(
+        sunday.value.weeks
+          .flat()
+          .filter((value) => value !== null)
+          .map((value) => value.date),
+      ).size,
+    ).toBe(31);
   });
 
   it("navigates across years and stops at supported boundaries", () => {
@@ -133,5 +190,35 @@ describe("monthly calendar presentation", () => {
     }
 
     expect(result.value.weeks).toHaveLength(6);
+  });
+
+  it("counts worked Saturday and Sunday dates only", () => {
+    const result = createMonthlyCalendarView(
+      presetConfig(),
+      validMonth("2026-10"),
+    );
+
+    if (!result.ok) throw new Error("Expected October 2026 to render.");
+
+    expect(result.value.weekendDates).toEqual({ worked: 7, total: 9 });
+    expect(result.value.weekendDates).toEqual(
+      countWeekendDates(result.value.occurrences),
+    );
+    expect(
+      createCalendarWeeks(result.value.occurrences, "sunday")
+        .flat()
+        .filter(Boolean),
+    ).toHaveLength(31);
+  });
+
+  it("counts Day and Night weekend dates but excludes Off and weekdays", () => {
+    expect(
+      countWeekendDates([
+        { date: validDate("2026-10-03"), shift: "day", cycleIndex: 0 },
+        { date: validDate("2026-10-04"), shift: "night", cycleIndex: 1 },
+        { date: validDate("2026-10-10"), shift: "off", cycleIndex: 2 },
+        { date: validDate("2026-10-05"), shift: "day", cycleIndex: 3 },
+      ]),
+    ).toEqual({ worked: 2, total: 3 });
   });
 });

@@ -37,5 +37,6 @@ export type {
   SchedulePattern,
   ScheduleShareState,
   ShiftKind,
+  WeekStart,
   WorkingShiftKind,
 } from "./schedule-types";

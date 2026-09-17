@@ -1,18 +1,22 @@
 import { Moon, Pause, Sun } from "lucide-react";
 
-import type { ScheduleOccurrence, ShiftKind } from "@/features/schedule/domain";
+import type {
+  ScheduleOccurrence,
+  ShiftKind,
+  WeekStart,
+} from "@/features/schedule/domain";
 import {
   formatFullDate,
+  getWeekdayLabels,
   SHIFT_LABELS,
   SHIFT_SHORT_LABELS,
-  WEEKDAY_FULL_LABELS,
-  WEEKDAY_SHORT_LABELS,
 } from "@/features/schedule/presentation/calendar-view";
 import { cn } from "@/lib/utils";
 
 type CalendarMonthGridProps = {
   readonly label: string;
   readonly weeks: readonly (readonly (ScheduleOccurrence | null)[])[];
+  readonly weekStart: WeekStart;
   readonly compact?: boolean;
 };
 
@@ -25,8 +29,11 @@ export const shiftPresentation = {
 export function CalendarMonthGrid({
   label,
   weeks,
+  weekStart,
   compact = false,
 }: CalendarMonthGridProps) {
+  const weekdayLabels = getWeekdayLabels(weekStart);
+
   return (
     <table
       className={cn(
@@ -41,9 +48,9 @@ export function CalendarMonthGrid({
       </caption>
       <thead>
         <tr>
-          {WEEKDAY_SHORT_LABELS.map((weekday, index) => (
+          {weekdayLabels.short.map((weekday, index) => (
             <th
-              abbr={WEEKDAY_FULL_LABELS[index]}
+              abbr={weekdayLabels.full[index]}
               className={cn(
                 "text-muted-foreground pb-1 text-center font-bold tracking-wide uppercase",
                 compact ? "text-[0.5rem]" : "text-[0.65rem] sm:text-xs",

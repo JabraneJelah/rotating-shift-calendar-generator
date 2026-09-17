@@ -45,6 +45,7 @@ describe("yearly calendar presentation", () => {
         result.value.counts.night +
         result.value.counts.off,
     ).toBe(365);
+    expect(result.value.weekendDates.total).toBe(104);
   });
 
   it("includes leap day exactly once and totals 366 dates", () => {
@@ -57,6 +58,25 @@ describe("yearly calendar presentation", () => {
       result.value.occurrences.filter(({ date }) => date === "2028-02-29"),
     ).toHaveLength(1);
     expect(result.value.months[1]?.occurrences).toHaveLength(29);
+    expect(result.value.weekendDates.total).toBe(106);
+  });
+
+  it("changes only grid presentation when Sunday is selected", () => {
+    const monday = createYearlyCalendarView(presetConfig("2026-10-01"), 2026);
+    const sunday = createYearlyCalendarView(
+      presetConfig("2026-10-01"),
+      2026,
+      "sunday",
+    );
+
+    if (!monday.ok || !sunday.ok) throw new Error("Expected valid views.");
+
+    expect(sunday.value.occurrences).toEqual(monday.value.occurrences);
+    expect(sunday.value.weekendDates).toEqual(monday.value.weekendDates);
+    expect(sunday.value.weekStart).toBe("sunday");
+    expect(sunday.value.months[0]?.weeks).not.toEqual(
+      monday.value.months[0]?.weeks,
+    );
   });
 
   it("preserves the cycle phase when the anchor lies outside the year", () => {

@@ -57,6 +57,14 @@ Exit criteria were met: preset and custom workflows use the Phase 2A API, URL re
 
 Field performance and search measurement remain later work subject to privacy review; they were not introduced in Phase 4.
 
+## Phase 5A — personal insights and year export (complete)
+
+- Backward-compatible Monday/Sunday week-start preference in V1 share links
+- Separate tomorrow and next-working-day information from date-only schedule rules
+- Monthly and annual worked Saturday/Sunday date totals
+- Explicit full-year ICS export with complete-range validation and 365/366 events
+- Unit, component, timezone, browser, responsive, print, and boundary coverage without new dependencies or routes
+
 ## Later evaluation
 
 Only after real usage: advertising, localization, saved schedules/accounts, and server persistence. Each requires a separate product, privacy, performance, and maintenance decision.

@@ -12,12 +12,15 @@ import { CalendarRange, LockKeyhole } from "lucide-react";
 
 import {
   parseScheduleQuery,
+  parseISODate,
   serializeScheduleQuery,
   validateScheduleConfig,
+  type ISODate,
   type ISOYearMonth,
   type PresetId,
   type ScheduleConfig,
   type ShiftKind,
+  type WeekStart,
   type WorkingShiftKind,
 } from "@/features/schedule/domain";
 import {
@@ -35,10 +38,12 @@ import {
   presentScheduleLinkErrors,
   type ScheduleFieldErrors,
 } from "@/features/schedule/presentation/schedule-error-messages";
+import { createScheduleInsights } from "@/features/schedule/presentation/schedule-insights";
 
 import { MonthlyCalendar } from "./monthly-calendar";
 import { ScheduleActions } from "./schedule-actions";
 import { ScheduleForm, type ScheduleMode } from "./schedule-form";
+import { ScheduleInsights } from "./schedule-insights";
 import {
   ScheduleViewControls,
   type ScheduleViewMode,
@@ -102,6 +107,18 @@ function formErrorMessages(
   ];
 }
 
+function getLocalToday(): ISODate | null {
+  const now = new Date();
+  const value = `${now.getFullYear().toString().padStart(4, "0")}-${(
+    now.getMonth() + 1
+  )
+    .toString()
+    .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}`;
+  const result = parseISODate(value);
+
+  return result.ok ? result.value : null;
+}
+
 export function ScheduleGenerator() {
   const [form, setForm] = useState<EditableScheduleState>(
     createDefaultFormState,
@@ -113,7 +130,9 @@ export function ScheduleGenerator() {
     null,
   );
   const [viewMode, setViewMode] = useState<ScheduleViewMode>("month");
+  const [weekStart, setWeekStart] = useState<WeekStart>("monday");
   const [yearlyView, setYearlyView] = useState<YearlyCalendarView | null>(null);
+  const [today, setToday] = useState<ISODate | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [isReady, setIsReady] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
@@ -127,12 +146,17 @@ export function ScheduleGenerator() {
     (
       config: ScheduleConfig,
       viewMonth: ISOYearMonth,
+      selectedWeekStart: WeekStart,
       historyAction: HistoryAction,
       message: string,
       focusResult: boolean,
       errorTarget: ErrorTarget = "form",
     ): boolean => {
-      const viewResult = createMonthlyCalendarView(config, viewMonth);
+      const viewResult = createMonthlyCalendarView(
+        config,
+        viewMonth,
+        selectedWeekStart,
+      );
 
       if (!viewResult.ok) {
         const messages = viewResult.errors.map(getScheduleErrorMessage);
@@ -153,7 +177,11 @@ export function ScheduleGenerator() {
         return false;
       }
 
-      const queryResult = serializeScheduleQuery({ config, viewMonth });
+      const queryResult = serializeScheduleQuery({
+        config,
+        viewMonth,
+        weekStart: selectedWeekStart,
+      });
 
       if (!queryResult.ok) {
         const messages = queryResult.errors.map(getScheduleErrorMessage);
@@ -172,6 +200,7 @@ export function ScheduleGenerator() {
       }
 
       setGenerated({ config, view: viewResult.value });
+      setWeekStart(selectedWeekStart);
       setViewMode("month");
       setYearlyView(null);
       setFieldErrors({});
@@ -208,6 +237,7 @@ export function ScheduleGenerator() {
       setLinkErrors([]);
       setGenerated(null);
       setViewMode("month");
+      setWeekStart("monday");
       setYearlyView(null);
       setStatusMessage("");
       return;
@@ -222,18 +252,25 @@ export function ScheduleGenerator() {
       setLinkErrors(presentScheduleLinkErrors(parsedResult.errors));
       setGenerated(null);
       setViewMode("month");
+      setWeekStart("monday");
       setYearlyView(null);
       setStatusMessage("");
       return;
     }
 
-    const { config, viewMonth } = parsedResult.value;
+    const {
+      config,
+      viewMonth,
+      weekStart: restoredWeekStart,
+    } = parsedResult.value;
     const selectedMonth = viewMonth ?? getViewMonthFromDate(config.startDate);
+    const selectedWeekStart = restoredWeekStart ?? "monday";
 
     setForm(formStateFromConfig(config));
     commitSchedule(
       config,
       selectedMonth,
+      selectedWeekStart,
       "replace",
       "Shared schedule restored.",
       false,
@@ -245,6 +282,7 @@ export function ScheduleGenerator() {
     // The URL is an external source of truth. Restore it before a user can
     // interact so the delayed hydration pass cannot overwrite form edits.
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setToday(getLocalToday());
     restoreFromLocation();
     setIsReady(true);
     window.addEventListener("popstate", restoreFromLocation);
@@ -305,6 +343,7 @@ export function ScheduleGenerator() {
     commitSchedule(
       validationResult.value,
       viewMonth,
+      weekStart,
       "push",
       `Schedule generated for ${viewMonth}.`,
       true,
@@ -319,6 +358,7 @@ export function ScheduleGenerator() {
     commitSchedule(
       generated.config,
       viewMonth,
+      weekStart,
       "replace",
       `Showing schedule for ${viewMonth}.`,
       false,
@@ -328,9 +368,10 @@ export function ScheduleGenerator() {
   function showYear(
     config: ScheduleConfig,
     year: number,
+    selectedWeekStart: WeekStart,
     focusResult: boolean,
   ) {
-    const result = createYearlyCalendarView(config, year);
+    const result = createYearlyCalendarView(config, year, selectedWeekStart);
 
     if (!result.ok) {
       setGeneralErrors(result.errors.map(getScheduleErrorMessage));
@@ -365,17 +406,80 @@ export function ScheduleGenerator() {
     showYear(
       generated.config,
       Number(generated.view.viewMonth.slice(0, 4)),
+      weekStart,
       true,
     );
   }
 
   function handleYearNavigation(year: number) {
     if (generated !== null) {
-      showYear(generated.config, year, false);
+      showYear(generated.config, year, weekStart, false);
     }
   }
 
+  function handleWeekStartChange(nextWeekStart: WeekStart) {
+    if (generated === null || nextWeekStart === weekStart) {
+      return;
+    }
+
+    const monthlyResult = createMonthlyCalendarView(
+      generated.config,
+      generated.view.viewMonth,
+      nextWeekStart,
+    );
+
+    if (!monthlyResult.ok) {
+      setGeneralErrors(monthlyResult.errors.map(getScheduleErrorMessage));
+      focusErrorSummary();
+      return;
+    }
+
+    let nextYearlyView = yearlyView;
+
+    if (viewMode === "year" && yearlyView !== null) {
+      const yearlyResult = createYearlyCalendarView(
+        generated.config,
+        yearlyView.year,
+        nextWeekStart,
+      );
+
+      if (!yearlyResult.ok) {
+        setGeneralErrors(yearlyResult.errors.map(getScheduleErrorMessage));
+        focusErrorSummary();
+        return;
+      }
+
+      nextYearlyView = yearlyResult.value;
+    }
+
+    const queryResult = serializeScheduleQuery({
+      config: generated.config,
+      viewMonth: generated.view.viewMonth,
+      weekStart: nextWeekStart,
+    });
+
+    if (!queryResult.ok) {
+      setGeneralErrors(queryResult.errors.map(getScheduleErrorMessage));
+      focusErrorSummary();
+      return;
+    }
+
+    setWeekStart(nextWeekStart);
+    setGenerated({ config: generated.config, view: monthlyResult.value });
+    setYearlyView(nextYearlyView);
+    setGeneralErrors([]);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?${queryResult.value}`,
+    );
+  }
+
   const submissionMessages = formErrorMessages(fieldErrors, generalErrors);
+  const insightResult =
+    generated !== null && today !== null
+      ? createScheduleInsights(generated.config, today)
+      : null;
 
   return (
     <section
@@ -482,14 +586,19 @@ export function ScheduleGenerator() {
         <>
           <ScheduleViewControls
             onChange={handleViewModeChange}
+            onWeekStartChange={handleWeekStartChange}
             value={viewMode}
+            weekStart={weekStart}
           />
           <ScheduleActions
             activeView={viewMode}
             config={generated.config}
             onPrint={() => window.print()}
             view={generated.view}
+            weekStart={weekStart}
+            yearlyView={yearlyView}
           />
+          {insightResult ? <ScheduleInsights result={insightResult} /> : null}
           {viewMode === "month" ? (
             <MonthlyCalendar
               config={generated.config}

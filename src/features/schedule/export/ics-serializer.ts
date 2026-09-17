@@ -1,6 +1,7 @@
 import {
   addCalendarDays,
   compareISODate,
+  differenceInCalendarDays,
   parseISODate,
   serializeScheduleQuery,
   type ISODate,
@@ -105,11 +106,48 @@ export function generateICS(input: ICSExportInput): ICSExportResult {
   }
 
   let previousDate: ISODate | undefined;
+  const isYearExport = input.year !== undefined;
+  let yearFrom: ISODate | undefined;
+  let yearTo: ISODate | undefined;
+
+  if (isYearExport) {
+    if (
+      !Number.isSafeInteger(input.year) ||
+      input.year < 1 ||
+      input.year > 9999
+    ) {
+      return failure({ code: "INVALID_EXPORT_YEAR" });
+    }
+
+    const yearText = input.year.toString().padStart(4, "0");
+    const fromResult = parseISODate(`${yearText}-01-01`);
+    const toResult = parseISODate(`${yearText}-12-31`);
+
+    if (!fromResult.ok || !toResult.ok) {
+      return failure({ code: "INVALID_EXPORT_YEAR" });
+    }
+
+    yearFrom = fromResult.value;
+    yearTo = toResult.value;
+  }
 
   for (const occurrence of input.occurrences) {
-    if (!occurrence.date.startsWith(`${input.viewMonth}-`)) {
+    if (!isYearExport && !occurrence.date.startsWith(`${input.viewMonth}-`)) {
       return failure({
         code: "OCCURRENCE_OUTSIDE_MONTH",
+        occurrenceDate: occurrence.date,
+      });
+    }
+
+    if (
+      isYearExport &&
+      (yearFrom === undefined ||
+        yearTo === undefined ||
+        compareISODate(occurrence.date, yearFrom) < 0 ||
+        compareISODate(occurrence.date, yearTo) > 0)
+    ) {
+      return failure({
+        code: "OCCURRENCE_OUTSIDE_YEAR",
         occurrenceDate: occurrence.date,
       });
     }
@@ -130,9 +168,31 @@ export function generateICS(input: ICSExportInput): ICSExportResult {
           occurrenceDate: occurrence.date,
         });
       }
+
+      if (
+        isYearExport &&
+        differenceInCalendarDays(occurrence.date, previousDate) !== 1
+      ) {
+        return failure({
+          code: "INCOMPLETE_EXPORT_RANGE",
+          occurrenceDate: occurrence.date,
+        });
+      }
     }
 
     previousDate = occurrence.date;
+  }
+
+  if (
+    isYearExport &&
+    (yearFrom === undefined ||
+      yearTo === undefined ||
+      input.occurrences[0]?.date !== yearFrom ||
+      input.occurrences.at(-1)?.date !== yearTo ||
+      input.occurrences.length !==
+        differenceInCalendarDays(yearTo, yearFrom) + 1)
+  ) {
+    return failure({ code: "INCOMPLETE_EXPORT_RANGE" });
   }
 
   const lines: string[] = [
@@ -146,8 +206,9 @@ export function generateICS(input: ICSExportInput): ICSExportResult {
   addContentLine(lines, "X-WR-CALNAME", escapeICSText(input.calendarName));
 
   const identityHash = configurationHash(identityResult.value);
+  const rangeLabel = isYearExport ? `${input.year}` : input.viewMonth;
   const description = escapeICSText(
-    `${input.calendarName} schedule for ${input.viewMonth}.`,
+    `${input.calendarName} schedule for ${rangeLabel}.`,
   );
 
   for (const occurrence of input.occurrences) {
@@ -179,7 +240,7 @@ export function generateICS(input: ICSExportInput): ICSExportResult {
   return Object.freeze({
     success: true,
     content: `${lines.join(CRLF)}${CRLF}`,
-    filename: `shift-calendar-${input.viewMonth}.ics`,
+    filename: `shift-calendar-${rangeLabel}.ics`,
     mimeType: ICS_MIME_TYPE,
   });
 }

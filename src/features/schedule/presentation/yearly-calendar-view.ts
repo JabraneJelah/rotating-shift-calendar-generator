@@ -9,13 +9,16 @@ import {
   type ISOYearMonth,
   type ScheduleConfig,
   type ScheduleOccurrence,
+  type WeekStart,
 } from "@/features/schedule/domain";
 
 import {
   countShifts,
+  countWeekendDates,
   createCalendarWeeks,
   formatMonthLabel,
   type MonthlyScheduleCounts,
+  type WeekendDateCounts,
 } from "./calendar-view";
 
 export type YearlyMonthView = {
@@ -32,6 +35,8 @@ export type YearlyCalendarView = {
   readonly months: readonly YearlyMonthView[];
   readonly occurrences: readonly ScheduleOccurrence[];
   readonly counts: MonthlyScheduleCounts;
+  readonly weekendDates: WeekendDateCounts;
+  readonly weekStart: WeekStart;
 };
 
 function unsupportedYear<T>(year: number): DomainResult<T> {
@@ -81,6 +86,7 @@ export function getAdjacentYear(
 export function createYearlyCalendarView(
   config: ScheduleConfig,
   year: number,
+  weekStart: WeekStart = "monday",
 ): DomainResult<YearlyCalendarView> {
   if (
     !Number.isSafeInteger(year) ||
@@ -118,7 +124,7 @@ export function createYearlyCalendarView(
       viewMonth,
       label: formatMonthLabel(viewMonth),
       occurrences: Object.freeze(occurrences),
-      weeks: createCalendarWeeks(occurrences),
+      weeks: createCalendarWeeks(occurrences, weekStart),
     });
   });
 
@@ -131,6 +137,8 @@ export function createYearlyCalendarView(
       months: Object.freeze(months),
       occurrences: expansionResult.value,
       counts: countShifts(expansionResult.value),
+      weekendDates: countWeekendDates(expansionResult.value),
+      weekStart,
     }),
   });
 }

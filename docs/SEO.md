@@ -24,6 +24,8 @@ Phase 3A's explicit copy action serializes the already validated configuration t
 
 Phase 3B's yearly view is transient presentation state. It adds no query parameter, V2 schema, route, metadata variant, or sitemap entry. Shared V1 URLs continue to restore the configured monthly view, and yearly user results remain non-indexable client-rendered state under the clean homepage canonical.
 
+Phase 5A adds only optional presentation state to the existing codec: omission means Monday-first and `ws=sun` means Sunday-first. The parameter follows optional `m` in canonical serialization, is excluded from configuration identity, and creates no indexable route or metadata variant. Next-schedule information, weekend totals, and year downloads remain client-generated user results under the clean homepage canonical.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

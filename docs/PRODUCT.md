@@ -26,6 +26,7 @@ Enter a known or custom rotation once and receive a clear calendar that is easy 
 - A custom pattern builder for day, night, and off-day sequences
 - Date-only pattern anchoring and deterministic calendar generation
 - Monthly and yearly views designed for mobile and print
+- Monday- or Sunday-first presentation, next-schedule information, and worked-weekend-date totals
 - Accessible legend and non-color indicators
 - ICS export and shareable configuration URLs
 - Indexable explanatory pages for supported patterns and calculators
@@ -33,9 +34,9 @@ Enter a known or custom rotation once and receive a clear calendar that is easy 
 
 ## Calendar output contract
 
-Generated schedules offer a detailed monthly view and a compact twelve-month overview. Switching to the year view is a presentation choice, not saved state: shared V1 links, reload, and history restoration return to the monthly view represented by the URL. Year navigation likewise does not mutate that URL.
+Generated schedules offer a detailed monthly view and a compact twelve-month overview. Users can choose Monday- or Sunday-first display; Sunday is stored as optional V1 presentation state while omission means Monday for backward compatibility. Changing this preference does not change schedule calculation. Switching to the year view remains transient: shared links, reload, and history restoration return to the monthly view represented by the URL. Year navigation likewise does not mutate that URL.
 
-Copy and ICS actions continue to target the preserved visible month. The print action prints whichever view is active. Print CSS requests a portrait monthly page or a two-page landscape year split after six months, but browser and printer settings ultimately control pagination, margins, headers, scaling, and background graphics.
+One shared insight panel names tomorrow's schedule position and the next Day/Night working occurrence. Month and year summaries count worked Saturday/Sunday dates, not complete weekends. Separate ICS actions export the preserved visible month or the actively displayed complete year; exports remain date-only and include Day, Night, and Off events. The print action prints whichever view is active. Print CSS requests a portrait monthly page or a two-page landscape year split after six months, but browser and printer settings ultimately control pagination, margins, headers, scaling, and background graphics.
 
 ## Non-goals
 

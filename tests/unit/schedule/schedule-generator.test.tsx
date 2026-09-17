@@ -238,6 +238,50 @@ describe("monthly generation", () => {
     );
   });
 
+  it("defaults old links to Monday and replaces the URL for Sunday-first presentation", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-10",
+    );
+    render(<ScheduleGenerator />);
+
+    const table = await screen.findByRole("table", { name: /october 2026/i });
+    expect(screen.getByRole("radio", { name: "Monday" })).toBeChecked();
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+
+    const replaceState = vi.spyOn(window.history, "replaceState");
+    fireEvent.click(screen.getByRole("radio", { name: "Sunday" }));
+
+    expect(screen.getByRole("radio", { name: "Sunday" })).toBeChecked();
+    expect(window.location.search).toMatch(/&m=2026-10&ws=sun$/);
+    expect(replaceState).toHaveBeenCalledOnce();
+    expect(
+      within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+  });
+
+  it("restores Sunday-first state from a canonical link", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/?v=1&kind=custom&s=2026-10-01&cycle=d,n,o&m=2026-10&ws=sun",
+    );
+    render(<ScheduleGenerator />);
+
+    const table = await screen.findByRole("table", { name: /october 2026/i });
+    expect(screen.getByRole("radio", { name: "Sunday" })).toBeChecked();
+    expect(within(table).getAllByRole("columnheader")[0]).toHaveTextContent(
+      "Sun",
+    );
+  });
+
   it("renders every date in leap February from a valid link", async () => {
     window.history.replaceState(
       null,
@@ -269,6 +313,20 @@ describe("monthly generation", () => {
     ).toBeEnabled();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
+
+  it("shows separate next-schedule and next-working-day information", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+
+    const insights = await screen.findByRole("region", { name: /up next/i });
+    expect(within(insights).getByText(/next schedule position/i)).toBeVisible();
+    expect(within(insights).getByText(/next working day/i)).toBeVisible();
+    expect(insights).toHaveTextContent(/shift|off/i);
+    expect(screen.getByLabelText(/monthly shift totals/i)).toHaveTextContent(
+      /weekend dates\d+ of 9 worked/i,
+    );
+  });
 });
 
 describe("yearly generation", () => {
@@ -294,6 +352,10 @@ describe("yearly generation", () => {
     expect(screen.getByLabelText(/yearly shift totals/i)).toHaveTextContent(
       "Total dates365",
     );
+    expect(screen.getByLabelText(/yearly shift totals/i)).toHaveTextContent(
+      /weekend dates\d+ of 104 worked/i,
+    );
+    expect(screen.getAllByRole("region", { name: /up next/i })).toHaveLength(1);
     expect(window.location.search).toBe(monthlyUrl);
   });
 
@@ -355,7 +417,7 @@ describe("schedule sharing and export actions", () => {
       screen.queryByRole("button", { name: /copy schedule link/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /download calendar file/i }),
+      screen.queryByRole("button", { name: /export this month/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("radio", { name: "Month" }),
@@ -371,8 +433,11 @@ describe("schedule sharing and export actions", () => {
       screen.getByRole("button", { name: /copy schedule link/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /download calendar file/i }),
+      screen.getByRole("button", { name: /export this month/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /export this year/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Month" })).toBeChecked();
     expect(
       screen.getByRole("button", { name: /print month view/i }),
@@ -396,6 +461,21 @@ describe("schedule sharing and export actions", () => {
     );
     expect(screen.getByRole("status")).toHaveTextContent(
       "Schedule link copied.",
+    );
+  });
+
+  it("copies the non-default Sunday preference", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("radio", { name: "Sunday" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /copy schedule link/i }),
+    );
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(writeText).toHaveBeenCalledWith(
+      "http://localhost:3000/?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-10&ws=sun",
     );
   });
 
@@ -460,15 +540,50 @@ describe("schedule sharing and export actions", () => {
     generate();
     fireEvent.click(screen.getByRole("button", { name: /show next month/i }));
     fireEvent.click(screen.getByRole("radio", { name: "Year" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: /download calendar file/i }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /export this month/i }));
 
     expect(downloadedFilename).toBe("shift-calendar-2026-11.ics");
     expect(exportedBlob?.type).toBe("text/calendar;charset=utf-8");
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:visible-month");
     expect(screen.getByRole("status")).toHaveTextContent(
       /downloaded for november 2026/i,
+    );
+  });
+
+  it("exports the active displayed year with a distinct action", () => {
+    let exportedBlob: Blob | undefined;
+    let downloadedFilename = "";
+    const createObjectURL = vi.fn((blob: Blob) => {
+      exportedBlob = blob;
+      return "blob:active-year";
+    });
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      downloadedFilename = this.download;
+    });
+
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    fireEvent.click(screen.getByRole("radio", { name: "Year" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show 2027" }));
+    fireEvent.click(screen.getByRole("button", { name: /export this year/i }));
+
+    expect(downloadedFilename).toBe("shift-calendar-2027.ics");
+    expect(exportedBlob?.type).toBe("text/calendar;charset=utf-8");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:active-year");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /downloaded for 2027/i,
     );
   });
 
@@ -483,7 +598,7 @@ describe("schedule sharing and export actions", () => {
       screen.queryByRole("button", { name: /copy schedule link/i }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /download calendar file/i }),
+      screen.queryByRole("button", { name: /export this month/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("radio", { name: "Year" }),

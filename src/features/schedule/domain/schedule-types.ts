@@ -3,6 +3,7 @@ declare const isoYearMonthBrand: unique symbol;
 
 export type ShiftKind = "day" | "night" | "off";
 export type WorkingShiftKind = Exclude<ShiftKind, "off">;
+export type WeekStart = "monday" | "sunday";
 
 export type ISODate = string & { readonly [isoDateBrand]: true };
 export type ISOYearMonth = string & { readonly [isoYearMonthBrand]: true };
@@ -39,6 +40,7 @@ export type ScheduleOccurrence = {
 export type ScheduleShareState = {
   readonly config: ScheduleConfig;
   readonly viewMonth?: ISOYearMonth;
+  readonly weekStart?: WeekStart;
 };
 
 export type DomainErrorCode =

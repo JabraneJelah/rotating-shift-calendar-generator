@@ -206,7 +206,7 @@ test("downloads the visible month as an all-day ICS calendar", async ({
   await page.getByRole("button", { name: /generate schedule/i }).click();
 
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: /download calendar file/i }).click();
+  await page.getByRole("button", { name: /export this month/i }).click();
   const download = await downloadPromise;
   const downloadPath = await download.path();
 
@@ -245,6 +245,10 @@ test("shows a complete yearly overview and keeps its navigation transient", asyn
   await expect(page.getByLabel(/yearly shift totals/i)).toContainText(
     "Total dates366",
   );
+  await expect(page.getByLabel(/yearly shift totals/i)).toContainText(
+    /Weekend dates\d+ of 106 worked/,
+  );
+  await expect(page.getByRole("region", { name: /up next/i })).toHaveCount(1);
   expect(page.url()).toBe(monthlyUrl);
 
   await page.getByRole("button", { name: "Show 2029" }).click();
@@ -286,6 +290,17 @@ test("print media exposes only the active calendar and print context", async ({
   await page.goto("/");
   await startDate(page).fill("2026-10-01");
   await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  const monthTable = page.getByRole("table", { name: /october 2026/i });
+  await page.emulateMedia({ media: "print" });
+  await expect(monthTable.getByRole("columnheader").first()).toHaveText("Mon");
+
+  await page.emulateMedia({ media: "screen" });
+  await page.getByRole("radio", { name: "Sunday" }).check();
+  await page.emulateMedia({ media: "print" });
+  await expect(monthTable.getByRole("columnheader").first()).toHaveText("Sun");
+
+  await page.emulateMedia({ media: "screen" });
   await page.getByRole("radio", { name: "Year" }).check();
   await page.emulateMedia({ media: "print" });
 
@@ -301,9 +316,106 @@ test("print media exposes only the active calendar and print context", async ({
     page.getByRole("button", { name: /print year view/i }),
   ).toBeHidden();
   await expect(page.getByRole("table")).toHaveCount(12);
+  await expect(
+    page.getByRole("table").first().getByRole("columnheader").first(),
+  ).toHaveAttribute("abbr", "Sunday");
 });
 
-for (const width of [320, 390, 768, 1440]) {
+test("restores Sunday-first presentation through reload", async ({ page }) => {
+  await page.goto(
+    "/?v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&m=2026-10",
+  );
+  const table = page.getByRole("table", { name: /october 2026/i });
+  await expect(table.getByRole("columnheader").first()).toHaveText("Mon");
+  await expect(page.getByRole("radio", { name: "Monday" })).toBeChecked();
+
+  await page.getByRole("radio", { name: "Sunday" }).check();
+  await expect(table.getByRole("columnheader").first()).toHaveText("Sun");
+  await expect(page).toHaveURL(/&m=2026-10&ws=sun$/);
+
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "Sunday" })).toBeChecked();
+  await expect(
+    page
+      .getByRole("table", { name: /october 2026/i })
+      .getByRole("columnheader")
+      .first(),
+  ).toHaveText("Sun");
+});
+
+test("restores different URL-backed week preferences with Back and Forward", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("radio", { name: "Sunday" }).check();
+
+  await startDate(page).fill("2026-12-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("radio", { name: "Monday" }).check();
+  await expect(page).toHaveURL(/s=2026-12-01.*m=2026-12$/);
+
+  await page.goBack();
+  await expect(startDate(page)).toHaveValue("2026-10-01");
+  await expect(page.getByRole("radio", { name: "Sunday" })).toBeChecked();
+  await expect(page).toHaveURL(/s=2026-10-01.*ws=sun$/);
+
+  await page.goForward();
+  await expect(startDate(page)).toHaveValue("2026-12-01");
+  await expect(page.getByRole("radio", { name: "Monday" })).toBeChecked();
+});
+
+test("shows monthly next information and scoped weekend dates", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  await expect(page.getByRole("region", { name: /up next/i })).toContainText(
+    "Next schedule position",
+  );
+  await expect(page.getByRole("region", { name: /up next/i })).toContainText(
+    "Next working day",
+  );
+  await expect(page.getByLabel(/monthly shift totals/i)).toContainText(
+    /Weekend dates\d+ of 9 worked/,
+  );
+});
+
+for (const [year, eventCount] of [
+  [2026, 365],
+  [2028, 366],
+] as const) {
+  test(`downloads exactly ${eventCount} events for ${year}`, async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await startDate(page).fill(`${year}-01-01`);
+    await page.getByRole("button", { name: /generate schedule/i }).click();
+    await page.getByRole("radio", { name: "Year" }).check();
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: /export this year/i }).click();
+    const download = await downloadPromise;
+    const downloadPath = await download.path();
+
+    expect(download.suggestedFilename()).toBe(`shift-calendar-${year}.ics`);
+    expect(downloadPath).not.toBeNull();
+    const content = await readFile(downloadPath!, "utf8");
+    expect(content.match(/BEGIN:VEVENT/g)).toHaveLength(eventCount);
+    const exportedDates = [
+      ...content.matchAll(/DTSTART;VALUE=DATE:(\d{8})/g),
+    ].map((match) => match[1]);
+    expect(exportedDates).toHaveLength(eventCount);
+    expect(exportedDates.every((value) => value.startsWith(`${year}`))).toBe(
+      true,
+    );
+  });
+}
+
+for (const width of [320, 390, 768, 1024, 1440]) {
   test(`has no page overflow after generation at ${width}px`, async ({
     page,
   }) => {
@@ -341,7 +453,7 @@ for (const width of [320, 390, 768, 1440]) {
         page.getByLabel(/schedule link for manual copying/i),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: /download calendar file/i }),
+        page.getByRole("button", { name: /export this month/i }),
       ).toBeVisible();
     }
 

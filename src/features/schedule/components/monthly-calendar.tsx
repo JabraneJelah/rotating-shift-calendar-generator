@@ -82,7 +82,7 @@ export function MonthlyCalendar({
 
       <dl
         aria-label="Monthly shift totals"
-        className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5"
+        className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-7"
       >
         <div className="bg-muted/55 col-span-2 rounded-xl p-3 sm:col-span-2">
           <dt className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
@@ -112,10 +112,22 @@ export function MonthlyCalendar({
             <dd className="mt-1 text-xl font-bold">{count}</dd>
           </div>
         ))}
+        <div className="bg-muted/55 col-span-2 rounded-xl p-3 text-center">
+          <dt className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            Weekend dates
+          </dt>
+          <dd className="mt-1 text-sm font-bold">
+            {view.weekendDates.worked} of {view.weekendDates.total} worked
+          </dd>
+        </div>
       </dl>
 
       <div className="mt-5" data-calendar-container>
-        <CalendarMonthGrid label={view.label} weeks={view.weeks} />
+        <CalendarMonthGrid
+          label={view.label}
+          weeks={view.weeks}
+          weekStart={view.weekStart}
+        />
       </div>
       <ShiftLegend />
     </section>

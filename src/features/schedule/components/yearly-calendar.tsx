@@ -88,7 +88,7 @@ export function YearlyCalendar({
 
       <dl
         aria-label="Yearly shift totals"
-        className="year-summary mt-6 grid grid-cols-2 gap-3 sm:grid-cols-7"
+        className="year-summary mt-6 grid grid-cols-2 gap-3 sm:grid-cols-9"
       >
         <div className="bg-muted/55 col-span-2 rounded-xl p-3 sm:col-span-2">
           <dt className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
@@ -120,6 +120,14 @@ export function YearlyCalendar({
             <dd className="mt-1 text-xl font-bold">{count}</dd>
           </div>
         ))}
+        <div className="bg-muted/55 col-span-2 rounded-xl p-3 text-center">
+          <dt className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+            Weekend dates
+          </dt>
+          <dd className="mt-1 text-sm font-bold">
+            {view.weekendDates.worked} of {view.weekendDates.total} worked
+          </dd>
+        </div>
       </dl>
 
       <div
@@ -135,6 +143,7 @@ export function YearlyCalendar({
               compact
               label={month.label}
               weeks={month.weeks}
+              weekStart={view.weekStart}
             />
           </article>
         ))}

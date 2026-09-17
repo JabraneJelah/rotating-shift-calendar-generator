@@ -103,7 +103,7 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Status:** Accepted
 
 **Reason:** A real table gives dates stable weekday relationships, while Monday-first ordering matches the initial international worker audience and product brief.
-**Consequences:** Monthly results use a caption, column headers, table cells, visible Day/Night/Off text, icons, and full accessible names. Week-start configuration and alternate calendar layouts are deferred.
+**Consequences:** Monthly results use a caption, column headers, table cells, visible Day/Night/Off text, icons, and full accessible names. D-032 later extends the same semantic table to an optional Sunday-first presentation.
 
 ## D-018 — Native history for generator URL state
 
@@ -138,7 +138,7 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Status:** Accepted
 
 **Reason:** The domain has calendar-day categories but no exact hours or time zones, and the visible month is the Phase 3A result users can currently verify.
-**Consequences:** Export emits one all-day event for every Day, Night, and Off occurrence in the current month. `DTEND` is the exclusive next civil date. Year/range export, recurrence, and timed events remain deferred.
+**Consequences:** Export emits one all-day event for every Day, Night, and Off occurrence in the current month. `DTEND` is the exclusive next civil date. Arbitrary-range export, recurrence, and timed events remain deferred; D-034 adds exact complete-year export without changing this monthly behavior.
 
 ## D-023 — Dependency-free pure ICS serialization
 
@@ -167,7 +167,7 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 
 **Reason:** Users need an annual overview without silently changing the shipped V1 sharing and visible-month export contract.
 
-**Consequences:** Year mode derives from the preserved monthly view, navigates years without URL mutation, and returns to that month. Generation, reload, and history restoration select Month. One annual domain expansion is grouped into twelve compact semantic tables and annual totals. Copy and ICS actions remain monthly; no V2 schema or yearly ICS behavior is introduced.
+**Consequences:** Year mode derives from the preserved monthly view, navigates years without URL mutation, and returns to that month. Generation, reload, and history restoration select Month. One annual domain expansion is grouped into twelve compact semantic tables and annual totals. Copy remains tied to the preserved monthly link; D-034 later adds a separate active-year ICS action without adding V2 URL state.
 
 ## D-027 — Semantic active-view native printing
 
@@ -208,3 +208,27 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** The approved content requires no browser interaction and should be useful in the initial response with minimal JavaScript.
 
 **Consequences:** All four routes are explicit Server Components and statically prerendered; no CMS, MDX, database, client boundary, or SEO dependency is introduced.
+
+## D-032 — Backward-compatible week-start presentation state
+
+**Status:** Accepted
+
+**Reason:** Workers need familiar Monday- or Sunday-first calendars, while every existing V1 link must keep its meaning and canonical form.
+
+**Consequences:** Omission means Monday, `ws=sun` means Sunday, and explicit Monday is not serialized. The field follows optional `m`, is restored through native history, and affects only grid ordering—not occurrence identity, date labels, weekday meaning, exports, or deterministic UIDs. Unsupported, empty, or duplicate values are rejected through the typed V1 codec; no V2 schema or route is introduced.
+
+## D-033 — Bounded date-only personal insights
+
+**Status:** Accepted
+
+**Reason:** Tomorrow's cycle position and the next working date answer different practical questions and must not depend on timers, locale parsing, or unbounded searches.
+
+**Consequences:** The browser supplies today's local civil date after hydration. Pure presentation logic uses domain date arithmetic, reports tomorrow separately, and searches at most one validated cycle for the next Day/Night occurrence. Monthly and annual weekend statistics count worked Saturday/Sunday dates, not complete weekends, independently of displayed week order.
+
+## D-034 — Exact complete-year ICS export
+
+**Status:** Accepted
+
+**Reason:** Users viewing a year need one explicit import file without changing the stable monthly export or inventing recurrence rules.
+
+**Consequences:** The serializer accepts a discriminated month/year request, requires exact ordered gap-free period coverage, and reuses all-day events, escaping, folding, UIDs, timestamps, and browser-only download behavior. Year files contain 365/366 events and are named `shift-calendar-YYYY.ics`. Year 9999 fails atomically because its final exclusive `DTEND` is outside the supported domain. Re-import behavior is provider-dependent, so the UI warns about possible duplicates. No dependency or calendar-provider integration is added.

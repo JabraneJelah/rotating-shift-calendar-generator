@@ -11,6 +11,7 @@ import {
   type ScheduleConfig,
   type ScheduleOccurrence,
   type ShiftKind,
+  type WeekStart,
 } from "@/features/schedule/domain";
 
 export const WEEKDAY_SHORT_LABELS = Object.freeze([
@@ -66,6 +67,11 @@ export type MonthlyScheduleCounts = {
   readonly off: number;
 };
 
+export type WeekendDateCounts = {
+  readonly worked: number;
+  readonly total: number;
+};
+
 export type MonthlyCalendarView = {
   readonly viewMonth: ISOYearMonth;
   readonly label: string;
@@ -74,6 +80,8 @@ export type MonthlyCalendarView = {
   readonly occurrences: readonly ScheduleOccurrence[];
   readonly weeks: readonly (readonly (ScheduleOccurrence | null)[])[];
   readonly counts: MonthlyScheduleCounts;
+  readonly weekendDates: WeekendDateCounts;
+  readonly weekStart: WeekStart;
 };
 
 function parsedDate(value: string): ISODate {
@@ -164,6 +172,37 @@ export function getMondayFirstWeekdayIndex(date: ISODate): number {
   return positiveModulo(differenceInCalendarDays(date, MONDAY_ANCHOR), 7);
 }
 
+export function getWeekdayIndex(date: ISODate, weekStart: WeekStart): number {
+  const mondayIndex = getMondayFirstWeekdayIndex(date);
+
+  return weekStart === "monday"
+    ? mondayIndex
+    : positiveModulo(mondayIndex + 1, 7);
+}
+
+export function getWeekdayLabels(weekStart: WeekStart): {
+  readonly short: readonly string[];
+  readonly full: readonly string[];
+} {
+  if (weekStart === "monday") {
+    return Object.freeze({
+      short: WEEKDAY_SHORT_LABELS,
+      full: WEEKDAY_FULL_LABELS,
+    });
+  }
+
+  return Object.freeze({
+    short: Object.freeze([
+      WEEKDAY_SHORT_LABELS[6],
+      ...WEEKDAY_SHORT_LABELS.slice(0, 6),
+    ]),
+    full: Object.freeze([
+      WEEKDAY_FULL_LABELS[6],
+      ...WEEKDAY_FULL_LABELS.slice(0, 6),
+    ]),
+  });
+}
+
 export function formatMonthLabel(viewMonth: ISOYearMonth): string {
   const { year, month } = monthParts(viewMonth);
   const monthName = MONTH_NAMES[month - 1];
@@ -194,6 +233,7 @@ export function formatFullDate(date: ISODate): string {
 
 export function createCalendarWeeks(
   occurrences: readonly ScheduleOccurrence[],
+  weekStart: WeekStart = "monday",
 ): readonly (readonly (ScheduleOccurrence | null)[])[] {
   const first = occurrences[0];
 
@@ -203,7 +243,7 @@ export function createCalendarWeeks(
 
   const cells: (ScheduleOccurrence | null)[] = [
     ...Array.from(
-      { length: getMondayFirstWeekdayIndex(first.date) },
+      { length: getWeekdayIndex(first.date, weekStart) },
       () => null,
     ),
     ...occurrences,
@@ -234,6 +274,29 @@ export function countShifts(
   return Object.freeze(counts);
 }
 
+export function countWeekendDates(
+  occurrences: readonly ScheduleOccurrence[],
+): WeekendDateCounts {
+  let worked = 0;
+  let total = 0;
+
+  for (const occurrence of occurrences) {
+    const weekdayIndex = getMondayFirstWeekdayIndex(occurrence.date);
+
+    if (weekdayIndex < 5) {
+      continue;
+    }
+
+    total += 1;
+
+    if (occurrence.shift !== "off") {
+      worked += 1;
+    }
+  }
+
+  return Object.freeze({ worked, total });
+}
+
 export function getScheduleName(config: ScheduleConfig): string {
   if (config.kind === "custom") {
     return "Custom cycle";
@@ -247,6 +310,7 @@ export function getScheduleName(config: ScheduleConfig): string {
 export function createMonthlyCalendarView(
   config: ScheduleConfig,
   viewMonth: ISOYearMonth,
+  weekStart: WeekStart = "monday",
 ): DomainResult<MonthlyCalendarView> {
   const { from, to } = getMonthRange(viewMonth);
   const expansionResult = expandSchedule(config, from, to);
@@ -263,8 +327,10 @@ export function createMonthlyCalendarView(
       from,
       to,
       occurrences: expansionResult.value,
-      weeks: createCalendarWeeks(expansionResult.value),
+      weeks: createCalendarWeeks(expansionResult.value, weekStart),
       counts: countShifts(expansionResult.value),
+      weekendDates: countWeekendDates(expansionResult.value),
+      weekStart,
     }),
   });
 }

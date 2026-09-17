@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseISODate,
   parseISOYearMonth,
+  expandSchedule,
   validateScheduleConfig,
   type ISODate,
   type ISOYearMonth,
@@ -56,6 +57,25 @@ function exportInput(
     config: config(),
     occurrences,
     viewMonth: month(viewMonth),
+    generatedAt: "20260916T101112Z",
+  } as const;
+}
+
+function yearExportInput(year: number) {
+  const yearText = year.toString().padStart(4, "0");
+  const expansion = expandSchedule(
+    config(),
+    date(`${yearText}-01-01`),
+    date(`${yearText}-12-31`),
+  );
+
+  if (!expansion.ok) throw new Error(`Unable to expand ${year}.`);
+
+  return {
+    calendarName: "Shift Calendar",
+    config: config(),
+    occurrences: expansion.value,
+    year,
     generatedAt: "20260916T101112Z",
   } as const;
 }
@@ -218,5 +238,56 @@ describe("ICS serialization", () => {
     });
     if (!result.success) return;
     expect(result.filename).toMatch(/^[a-z0-9-]+\.ics$/);
+  });
+
+  it.each([
+    [2026, 365],
+    [2028, 366],
+  ])("exports a complete %s year with %s events", (year, eventCount) => {
+    const result = generateICS(yearExportInput(year));
+
+    expect(result).toMatchObject({
+      success: true,
+      filename: `shift-calendar-${year}.ics`,
+      mimeType: "text/calendar;charset=utf-8",
+    });
+    if (!result.success) return;
+
+    expect(result.content.match(/BEGIN:VEVENT/g)).toHaveLength(eventCount);
+    expect(result.content).toContain(
+      `DTSTART;VALUE=DATE:${year.toString()}0101\r\n`,
+    );
+    expect(result.content).toContain(
+      `DTSTART;VALUE=DATE:${year.toString()}1231\r\n`,
+    );
+    expect(result.content).not.toContain(`DTSTART;VALUE=DATE:${year - 1}`);
+    expect(result.content).not.toContain(`DTSTART;VALUE=DATE:${year + 1}`);
+  });
+
+  it("rejects incomplete and out-of-year yearly collections", () => {
+    const input = yearExportInput(2026);
+
+    expect(
+      generateICS({ ...input, occurrences: input.occurrences.slice(1) }),
+    ).toMatchObject({
+      success: false,
+      error: { code: "INCOMPLETE_EXPORT_RANGE" },
+    });
+    expect(
+      generateICS({
+        ...input,
+        occurrences: [occurrence("2025-12-31"), ...input.occurrences.slice(1)],
+      }),
+    ).toMatchObject({
+      success: false,
+      error: { code: "OCCURRENCE_OUTSIDE_YEAR" },
+    });
+  });
+
+  it("fails atomically when the final exclusive end exceeds year 9999", () => {
+    expect(generateICS(yearExportInput(9999))).toMatchObject({
+      success: false,
+      error: { code: "DATE_OVERFLOW", occurrenceDate: "9999-12-31" },
+    });
   });
 });

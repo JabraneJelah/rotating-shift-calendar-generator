@@ -12,6 +12,7 @@ This document defines the Phase 2A schedule contract. The engine models repeatin
 - **Pattern start date:** the civil calendar date assigned to cycle index `0`.
 - **Custom pattern:** a user-authored cycle of supported shift kinds.
 - **Calendar occurrence:** an ISO date, its resolved shift kind, and the zero-based cycle index used.
+- **Week start:** presentation-only ordering, exactly `monday` or `sunday`; it never changes an occurrence.
 
 Each calendar date resolves to exactly one shift kind. A night shift may eventually cross midnight, but the current domain does not model its start or end time. Phase 3A calendar exports therefore represent Day, Night, and Off occurrences as all-day events without inventing hours or time zones.
 
@@ -101,9 +102,10 @@ Canonical query forms are:
 ```text
 v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day
 v=1&kind=custom&s=2026-10-01&cycle=d,d,n,n,o,o
+v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&ws=sun
 ```
 
-Cycle tokens are `d` (day), `n` (night), and `o` (off). Optional view month `m=2026-10` is presentation state and never affects calculation. Canonical order is `v`, `kind`, variant fields, then optional `m`. Parsing accepts any parameter order but serialization always emits canonical order.
+Cycle tokens are `d` (day), `n` (night), and `o` (off). Optional view month `m=2026-10` and week start are presentation state and never affect calculation. Omitted week start means Monday; Sunday is encoded as `ws=sun`; explicit Monday is omitted. Canonical order is `v`, `kind`, variant fields, optional `m`, then optional `ws`. Parsing accepts any parameter order but serialization always emits canonical order.
 
 Unknown, duplicate, missing, empty, variant-inapplicable, or malformed parameters are rejected. Parsing and serialization are pure and do not read or write browser history.
 
@@ -129,4 +131,4 @@ UI code will map codes to accessible user-facing language later; domain errors d
 
 ## Deferred edge cases
 
-Overnight timestamps, daylight-saving interpretation of shift times, time-zone conversion, exact start/end times, pay, breaks, overtime, and employer-specific alternating rotations remain deferred. Phase 3A maps existing date-only occurrences to all-day ICS events with an exclusive next-calendar-date end; it does not add time-aware domain behavior. Any future timed behavior requires separate contracts and unit tests without weakening the date-only model.
+Overnight timestamps, daylight-saving interpretation of shift times, time-zone conversion, exact start/end times, pay, breaks, overtime, and employer-specific alternating rotations remain deferred. Monthly and complete-year ICS export map existing date-only occurrences to all-day events with an exclusive next-calendar-date end; they do not add time-aware domain behavior. Any future timed behavior requires separate contracts and unit tests without weakening the date-only model.

@@ -13,6 +13,9 @@ export type ICSExportErrorCode =
   | "DUPLICATE_DATE"
   | "INVALID_OCCURRENCE_ORDER"
   | "OCCURRENCE_OUTSIDE_MONTH"
+  | "OCCURRENCE_OUTSIDE_YEAR"
+  | "INCOMPLETE_EXPORT_RANGE"
+  | "INVALID_EXPORT_YEAR"
   | "DATE_OVERFLOW"
   | "INVALID_CONFIGURATION";
 
@@ -21,13 +24,24 @@ export type ICSExportError = {
   readonly occurrenceDate?: string;
 };
 
-export type ICSExportInput = {
+type ICSExportInputBase = {
   readonly calendarName: string;
   readonly config: ScheduleConfig;
   readonly occurrences: readonly ScheduleOccurrence[];
-  readonly viewMonth: ISOYearMonth;
   readonly generatedAt: string;
 };
+
+export type ICSExportInput = ICSExportInputBase &
+  (
+    | {
+        readonly viewMonth: ISOYearMonth;
+        readonly year?: never;
+      }
+    | {
+        readonly year: number;
+        readonly viewMonth?: never;
+      }
+  );
 
 export type ICSExportSuccess = {
   readonly success: true;

@@ -2,9 +2,9 @@
 
 Shift Calendar is a fast, accessible, mobile-first rotating-shift calendar generator. It turns approved fixed-shift patterns or an editable Day/Night/Off cycle into clear monthly and yearly calendars without an account or backend.
 
-The current Phase 4 product supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month and year navigation, restorable versioned URLs, explicit link copying, visible-month ICS downloads, and native printing of the active calendar view. A small server-rendered discovery cluster explains the two presets and the product methodology. Schedule calculations, sharing, file generation, and printing preparation happen locally in the browser.
+The current Phase 5A product supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month and year navigation, Monday- or Sunday-first calendars, next-schedule insights, worked-weekend-date totals, restorable versioned URLs, explicit link copying, monthly and full-year ICS downloads, and native printing of the active calendar view. A small server-rendered discovery cluster explains the two presets and the product methodology. Schedule calculations, sharing, file generation, and printing preparation happen locally in the browser.
 
-The year selector is intentionally transient: it does not change the V1 shared URL or broaden ICS export. Copy and download continue to describe the preserved visible month. Print output hides page chrome and controls; monthly output requests portrait and yearly output requests landscape with a break after six months. Final pagination, headers, margins, and background-color handling remain subject to the browser and printer dialog.
+The year selector remains transient, while the optional Sunday-first preference is saved in compatible V1 links as `ws=sun`; old links and Monday-first links remain unchanged. Month export targets the preserved visible month and year export targets the actively displayed year. Print output hides page chrome and controls; monthly output requests portrait and yearly output requests landscape with a break after six months. Final pagination, headers, margins, and background-color handling remain subject to the browser and printer dialog.
 
 ## Requirements
 

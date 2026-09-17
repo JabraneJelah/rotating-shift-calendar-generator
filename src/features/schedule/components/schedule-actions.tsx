@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   serializeScheduleQuery,
   type ScheduleConfig,
+  type WeekStart,
 } from "@/features/schedule/domain";
 import {
   downloadICSFile,
@@ -13,10 +14,13 @@ import {
   generateICS,
 } from "@/features/schedule/export";
 import type { MonthlyCalendarView } from "@/features/schedule/presentation/calendar-view";
+import type { YearlyCalendarView } from "@/features/schedule/presentation/yearly-calendar-view";
 
 type ScheduleActionsProps = {
   readonly config: ScheduleConfig;
   readonly view: MonthlyCalendarView;
+  readonly yearlyView: YearlyCalendarView | null;
+  readonly weekStart: WeekStart;
   readonly activeView: "month" | "year";
   readonly onPrint: () => void;
 };
@@ -31,6 +35,8 @@ export function ScheduleActions({
   config,
   onPrint,
   view,
+  yearlyView,
+  weekStart,
 }: ScheduleActionsProps) {
   const [status, setStatus] = useState<ActionStatus | null>(null);
   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
@@ -68,6 +74,7 @@ export function ScheduleActions({
     const queryResult = serializeScheduleQuery({
       config,
       viewMonth: view.viewMonth,
+      weekStart,
     });
 
     if (!queryResult.ok) {
@@ -108,7 +115,7 @@ export function ScheduleActions({
     }
   }
 
-  function handleDownload() {
+  function handleMonthDownload() {
     const result = generateICS({
       calendarName: "Shift Calendar",
       config,
@@ -139,6 +146,46 @@ export function ScheduleActions({
     }
   }
 
+  function handleYearDownload() {
+    if (yearlyView === null) {
+      showTemporaryStatus({
+        kind: "error",
+        message: "Open the year view before exporting a full year.",
+      });
+      return;
+    }
+
+    const result = generateICS({
+      calendarName: "Shift Calendar",
+      config,
+      occurrences: yearlyView.occurrences,
+      year: yearlyView.year,
+      generatedAt: formatICSUtcTimestamp(new Date()),
+    });
+
+    if (!result.success) {
+      showTemporaryStatus({
+        kind: "error",
+        message:
+          "The full-year calendar file could not be created. Choose another supported year and try again.",
+      });
+      return;
+    }
+
+    try {
+      downloadICSFile(result);
+      showTemporaryStatus({
+        kind: "success",
+        message: `Calendar file downloaded for ${yearlyView.year}.`,
+      });
+    } catch {
+      showTemporaryStatus({
+        kind: "error",
+        message: "The calendar file could not be downloaded. Try again.",
+      });
+    }
+  }
+
   return (
     <section
       aria-labelledby="schedule-actions-heading"
@@ -148,23 +195,34 @@ export function ScheduleActions({
         Share, export, or print
       </h4>
       <p className="text-muted-foreground mt-1 text-sm leading-6">
-        Copy a restorable schedule link or download {view.label} as an all-day
-        calendar file. Printing uses the active {activeView} view.
+        Copy a restorable schedule link or export an all-day calendar file.
+        Printing uses the active {activeView} view.
       </p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button onClick={handleCopy} type="button" variant="outline">
           <Copy aria-hidden="true" className="mr-2 size-4" />
           Copy schedule link
         </Button>
-        <Button onClick={handleDownload} type="button" variant="outline">
+        <Button onClick={handleMonthDownload} type="button" variant="outline">
           <Download aria-hidden="true" className="mr-2 size-4" />
-          Download calendar file
+          Export this month (.ics)
         </Button>
+        {activeView === "year" && yearlyView !== null ? (
+          <Button onClick={handleYearDownload} type="button" variant="outline">
+            <Download aria-hidden="true" className="mr-2 size-4" />
+            Export this year (.ics)
+          </Button>
+        ) : null}
         <Button onClick={onPrint} type="button" variant="outline">
           <Printer aria-hidden="true" className="mr-2 size-4" />
           Print {activeView} view
         </Button>
       </div>
+
+      <p className="text-muted-foreground mt-3 text-xs leading-5">
+        Importing the same file more than once may create duplicate events in
+        some calendar applications.
+      </p>
 
       <div className="mt-3 min-h-6 text-sm" aria-live="polite" role="status">
         {status ? (

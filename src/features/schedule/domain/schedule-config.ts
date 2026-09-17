@@ -14,6 +14,7 @@ import {
   type ScheduleConfig,
   type ScheduleShareState,
   type ShiftKind,
+  type WeekStart,
 } from "./schedule-types";
 
 const KNOWN_QUERY_PARAMETERS = new Set([
@@ -24,11 +25,20 @@ const KNOWN_QUERY_PARAMETERS = new Set([
   "shift",
   "cycle",
   "m",
+  "ws",
 ]);
 
-const PRESET_QUERY_PARAMETERS = new Set(["v", "kind", "p", "s", "shift", "m"]);
+const PRESET_QUERY_PARAMETERS = new Set([
+  "v",
+  "kind",
+  "p",
+  "s",
+  "shift",
+  "m",
+  "ws",
+]);
 
-const CUSTOM_QUERY_PARAMETERS = new Set(["v", "kind", "s", "cycle", "m"]);
+const CUSTOM_QUERY_PARAMETERS = new Set(["v", "kind", "s", "cycle", "m", "ws"]);
 
 const SHIFT_TO_TOKEN = {
   day: "d",
@@ -243,15 +253,47 @@ function parseOptionalViewMonth(
   return parseISOYearMonth(rawViewMonth);
 }
 
+function parseOptionalWeekStart(
+  parameters: URLSearchParams,
+): DomainResult<ScheduleShareState["weekStart"]> {
+  const rawWeekStart = parameters.get("ws");
+
+  if (rawWeekStart === null) {
+    return domainSuccess(undefined);
+  }
+
+  if (rawWeekStart !== "sun") {
+    return domainFailure(
+      domainError("INVALID_CONFIGURATION", {
+        path: "ws",
+        value: rawWeekStart,
+      }),
+    );
+  }
+
+  return domainSuccess("sunday");
+}
+
 function shareState(
   config: ScheduleConfig,
   viewMonth: ScheduleShareState["viewMonth"],
+  weekStart: ScheduleShareState["weekStart"],
 ): ScheduleShareState {
-  if (viewMonth === undefined) {
-    return Object.freeze({ config });
+  const state: {
+    config: ScheduleConfig;
+    viewMonth?: ScheduleShareState["viewMonth"];
+    weekStart?: WeekStart;
+  } = { config };
+
+  if (viewMonth !== undefined) {
+    state.viewMonth = viewMonth;
   }
 
-  return Object.freeze({ config, viewMonth });
+  if (weekStart !== undefined) {
+    state.weekStart = weekStart;
+  }
+
+  return Object.freeze(state);
 }
 
 export function parseScheduleQuery(
@@ -325,6 +367,12 @@ export function parseScheduleQuery(
     return viewMonthResult;
   }
 
+  const weekStartResult = parseOptionalWeekStart(parameters);
+
+  if (!weekStartResult.ok) {
+    return weekStartResult;
+  }
+
   if (kindResult.value === "preset") {
     const presetResult = requiredParameter(parameters, "p");
 
@@ -364,7 +412,9 @@ export function parseScheduleQuery(
       workingShift: workingShiftResult.value,
     });
 
-    return domainSuccess(shareState(config, viewMonthResult.value));
+    return domainSuccess(
+      shareState(config, viewMonthResult.value, weekStartResult.value),
+    );
   }
 
   const cycleResult = requiredParameter(parameters, "cycle");
@@ -416,7 +466,9 @@ export function parseScheduleQuery(
     cycle: patternResult.value.cycle,
   });
 
-  return domainSuccess(shareState(config, viewMonthResult.value));
+  return domainSuccess(
+    shareState(config, viewMonthResult.value, weekStartResult.value),
+  );
 }
 
 export function serializeScheduleQuery(value: unknown): DomainResult<string> {
@@ -431,6 +483,7 @@ export function serializeScheduleQuery(value: unknown): DomainResult<string> {
   }
 
   let viewMonth: ScheduleShareState["viewMonth"];
+  let weekStart: ScheduleShareState["weekStart"];
 
   if (hasOwn(value, "viewMonth") && value.viewMonth !== undefined) {
     const viewMonthResult = parseISOYearMonth(value.viewMonth);
@@ -440,6 +493,19 @@ export function serializeScheduleQuery(value: unknown): DomainResult<string> {
     }
 
     viewMonth = viewMonthResult.value;
+  }
+
+  if (hasOwn(value, "weekStart") && value.weekStart !== undefined) {
+    if (value.weekStart !== "monday" && value.weekStart !== "sunday") {
+      return domainFailure(
+        domainError("INVALID_CONFIGURATION", {
+          path: "weekStart",
+          value: errorValue(value.weekStart),
+        }),
+      );
+    }
+
+    weekStart = value.weekStart;
   }
 
   const config = configResult.value;
@@ -460,6 +526,10 @@ export function serializeScheduleQuery(value: unknown): DomainResult<string> {
 
   if (viewMonth !== undefined) {
     parts.push(`m=${viewMonth}`);
+  }
+
+  if (weekStart === "sunday") {
+    parts.push("ws=sun");
   }
 
   return domainSuccess(parts.join("&"));

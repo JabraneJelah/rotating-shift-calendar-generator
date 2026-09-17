@@ -33,6 +33,8 @@ ICS text escapes backslash, comma, semicolon, and every newline form before UTF-
 
 Downloads are created entirely in the browser with `text/calendar;charset=utf-8`. One object URL is created per explicit action, the temporary anchor is removed, and the URL is revoked in `finally`. Schedule data is not uploaded, logged, persisted, analyzed, or sent to a calendar provider.
 
+Phase 5A extends the same boundary to complete-year files. The serializer accepts only an exact ordered, gap-free January 1–December 31 occurrence set, caps output naturally at 366 events, and fails atomically when the final event's exclusive end would exceed supported date arithmetic (year 9999). The week-start preference, next-schedule insight, and weekend totals are derived locally from validated date-only values. No account, storage, provider API, worker identity, or new telemetry is introduced.
+
 ## Phase 3B local printing
 
 Printing is initiated only by an explicit user action and delegates directly to the browser's native print dialog. The application reuses escaped semantic calendar HTML and local CSS; it does not build raw HTML strings, rasterize content, contact a print/PDF service, load remote print assets, store print jobs, or transmit schedule data. Browser “Save as PDF” behavior remains local browser functionality rather than an application-generated download.
