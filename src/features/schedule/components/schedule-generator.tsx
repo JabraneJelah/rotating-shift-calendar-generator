@@ -14,6 +14,7 @@ import {
   parseScheduleQuery,
   parseISODate,
   isFixedPresetId,
+  resolvePresetPattern,
   serializeScheduleQuery,
   validateScheduleConfig,
   type ISODate,
@@ -24,6 +25,11 @@ import {
   type WeekStart,
   type WorkingShiftKind,
 } from "@/features/schedule/domain";
+import {
+  isDefaultShiftDefinitionRegistry,
+  validateShiftDefinitionRegistry,
+  type ShiftDefinitionRegistry,
+} from "@/features/schedule/planner";
 import {
   createMonthlyCalendarView,
   getViewMonthFromDate,
@@ -40,11 +46,20 @@ import {
   type ScheduleFieldErrors,
 } from "@/features/schedule/presentation/schedule-error-messages";
 import { createScheduleInsights } from "@/features/schedule/presentation/schedule-insights";
+import {
+  presentPlannerErrors,
+  type PlannerFieldErrors,
+} from "@/features/schedule/presentation/planner-error-messages";
 
 import { MonthlyCalendar } from "./monthly-calendar";
 import { ScheduleActions } from "./schedule-actions";
 import { ScheduleForm, type ScheduleMode } from "./schedule-form";
 import { ScheduleInsights } from "./schedule-insights";
+import {
+  createDefaultEditableShiftDetails,
+  shiftDetailsToRegistryInput,
+  type EditableShiftDetails,
+} from "./shift-details-panel";
 import {
   ScheduleViewControls,
   type ScheduleViewMode,
@@ -62,6 +77,7 @@ type EditableScheduleState = {
 type GeneratedScheduleState = {
   readonly config: ScheduleConfig;
   readonly view: MonthlyCalendarView;
+  readonly planner: ShiftDefinitionRegistry | null;
 };
 
 type HistoryAction = "push" | "replace" | "none";
@@ -97,6 +113,26 @@ function formStateFromConfig(config: ScheduleConfig): EditableScheduleState {
   };
 }
 
+function configUsesShift(
+  config: ScheduleConfig,
+  shift: WorkingShiftKind,
+): boolean {
+  if (config.kind === "custom") {
+    return config.cycle.includes(shift);
+  }
+
+  const pattern = resolvePresetPattern(
+    config.presetId,
+    "workingShift" in config ? config.workingShift : undefined,
+  );
+
+  if (!pattern.ok) {
+    throw new Error("A validated preset must resolve its cycle.");
+  }
+
+  return pattern.value.cycle.includes(shift);
+}
+
 function formErrorMessages(
   fields: ScheduleFieldErrors,
   general: readonly string[],
@@ -126,6 +162,10 @@ export function ScheduleGenerator() {
   );
   const [fieldErrors, setFieldErrors] = useState<ScheduleFieldErrors>({});
   const [generalErrors, setGeneralErrors] = useState<readonly string[]>([]);
+  const [plannerErrors, setPlannerErrors] = useState<PlannerFieldErrors>({});
+  const [shiftDetails, setShiftDetails] = useState<EditableShiftDetails>(
+    createDefaultEditableShiftDetails,
+  );
   const [linkErrors, setLinkErrors] = useState<readonly string[]>([]);
   const [generated, setGenerated] = useState<GeneratedScheduleState | null>(
     null,
@@ -148,6 +188,7 @@ export function ScheduleGenerator() {
       config: ScheduleConfig,
       viewMonth: ISOYearMonth,
       selectedWeekStart: WeekStart,
+      planner: ShiftDefinitionRegistry | null,
       historyAction: HistoryAction,
       message: string,
       focusResult: boolean,
@@ -200,12 +241,13 @@ export function ScheduleGenerator() {
         return false;
       }
 
-      setGenerated({ config, view: viewResult.value });
+      setGenerated({ config, view: viewResult.value, planner });
       setWeekStart(selectedWeekStart);
       setViewMode("month");
       setYearlyView(null);
       setFieldErrors({});
       setGeneralErrors([]);
+      setPlannerErrors({});
       setLinkErrors([]);
       setStatusMessage(message);
 
@@ -235,6 +277,8 @@ export function ScheduleGenerator() {
       setForm(createDefaultFormState());
       setFieldErrors({});
       setGeneralErrors([]);
+      setPlannerErrors({});
+      setShiftDetails(createDefaultEditableShiftDetails());
       setLinkErrors([]);
       setGenerated(null);
       setViewMode("month");
@@ -250,6 +294,8 @@ export function ScheduleGenerator() {
       setForm(createDefaultFormState());
       setFieldErrors({});
       setGeneralErrors([]);
+      setPlannerErrors({});
+      setShiftDetails(createDefaultEditableShiftDetails());
       setLinkErrors(presentScheduleLinkErrors(parsedResult.errors));
       setGenerated(null);
       setViewMode("month");
@@ -268,10 +314,13 @@ export function ScheduleGenerator() {
     const selectedWeekStart = restoredWeekStart ?? "monday";
 
     setForm(formStateFromConfig(config));
+    setShiftDetails(createDefaultEditableShiftDetails());
+    setPlannerErrors({});
     commitSchedule(
       config,
       selectedMonth,
       selectedWeekStart,
+      null,
       "replace",
       "Shared schedule restored.",
       false,
@@ -346,12 +395,38 @@ export function ScheduleGenerator() {
       return;
     }
 
+    const defaults = createDefaultEditableShiftDetails();
+    const applicableShiftDetails = {
+      day: configUsesShift(validationResult.value, "day")
+        ? shiftDetails.day
+        : defaults.day,
+      night: configUsesShift(validationResult.value, "night")
+        ? shiftDetails.night
+        : defaults.night,
+    };
+    const plannerResult = validateShiftDefinitionRegistry(
+      shiftDetailsToRegistryInput(applicableShiftDetails),
+    );
+
+    if (!plannerResult.ok) {
+      const presented = presentPlannerErrors(plannerResult.errors);
+      setPlannerErrors(presented.fields);
+      setGeneralErrors(presented.summary);
+      setStatusMessage("");
+      focusErrorSummary();
+      return;
+    }
+
     const viewMonth = getViewMonthFromDate(validationResult.value.startDate);
+    const appliedPlanner = isDefaultShiftDefinitionRegistry(plannerResult.value)
+      ? null
+      : plannerResult.value;
 
     commitSchedule(
       validationResult.value,
       viewMonth,
       weekStart,
+      appliedPlanner,
       "push",
       `Schedule generated for ${viewMonth}.`,
       true,
@@ -367,6 +442,7 @@ export function ScheduleGenerator() {
       generated.config,
       viewMonth,
       weekStart,
+      generated.planner,
       "replace",
       `Showing schedule for ${viewMonth}.`,
       false,
@@ -473,7 +549,11 @@ export function ScheduleGenerator() {
     }
 
     setWeekStart(nextWeekStart);
-    setGenerated({ config: generated.config, view: monthlyResult.value });
+    setGenerated({
+      config: generated.config,
+      view: monthlyResult.value,
+      planner: generated.planner,
+    });
     setYearlyView(nextYearlyView);
     setGeneralErrors([]);
     window.history.replaceState(
@@ -561,12 +641,25 @@ export function ScheduleGenerator() {
           customCycle={form.customCycle}
           disabled={!isReady}
           errors={fieldErrors}
+          plannerErrors={plannerErrors}
+          shiftDetails={shiftDetails}
+          hasGenerated={generated !== null}
           mode={form.mode}
           onCustomCycleChange={(customCycle) => {
             setForm((current) => ({ ...current, customCycle }));
             clearFieldError("cycle");
           }}
           onModeChange={handleModeChange}
+          onShiftDetailsChange={(value) => {
+            setShiftDetails(value);
+            setPlannerErrors({});
+            setGeneralErrors([]);
+          }}
+          onShiftDetailsReset={() => {
+            setShiftDetails(createDefaultEditableShiftDetails());
+            setPlannerErrors({});
+            setGeneralErrors([]);
+          }}
           onPresetChange={(presetId) => {
             setForm((current) => ({ ...current, presetId }));
             setGeneralErrors([]);
@@ -601,17 +694,24 @@ export function ScheduleGenerator() {
           <ScheduleActions
             activeView={viewMode}
             config={generated.config}
+            hasPrivateShiftDetails={generated.planner !== null}
             onPrint={() => window.print()}
             view={generated.view}
             weekStart={weekStart}
             yearlyView={yearlyView}
           />
-          {insightResult ? <ScheduleInsights result={insightResult} /> : null}
+          {insightResult ? (
+            <ScheduleInsights
+              planner={generated.planner}
+              result={insightResult}
+            />
+          ) : null}
           {viewMode === "month" ? (
             <MonthlyCalendar
               config={generated.config}
               headingRef={resultHeadingRef}
               onNavigate={handleMonthNavigation}
+              planner={generated.planner}
               view={generated.view}
             />
           ) : yearlyView ? (
@@ -619,6 +719,7 @@ export function ScheduleGenerator() {
               config={generated.config}
               headingRef={resultHeadingRef}
               onNavigate={handleYearNavigation}
+              planner={generated.planner}
               view={yearlyView}
             />
           ) : null}

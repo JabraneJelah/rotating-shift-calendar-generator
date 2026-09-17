@@ -158,7 +158,7 @@ test("restores generated schedules through browser history", async ({
   ).toBeVisible();
 
   await startDate(page).fill("2026-12-01");
-  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /update schedule/i }).click();
   await expect(
     page.getByRole("heading", { name: "December 2026" }),
   ).toBeVisible();
@@ -201,6 +201,64 @@ test("focuses useful errors and recovers from an invalid shared link", async ({
   await expect(
     page.getByRole("button", { name: /generate schedule/i }),
   ).toBeEnabled();
+});
+
+test("applies private overnight shift details but drops them on reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Shift pattern").selectOption("2-day-2-night-4-off");
+  await page.getByText("Shift details (optional)").click();
+
+  const day = page.getByRole("group", { name: "Day details" });
+  const night = page.getByRole("group", { name: "Night details" });
+  await day.getByLabel("Shift name").fill("Morning duty");
+  await day.getByLabel("Short label").fill("AM");
+  await day.getByText("Blue", { exact: true }).click();
+  await night.getByLabel(/start time/i).fill("22:00");
+  await night.getByLabel(/end time/i).fill("06:00");
+  await night.getByLabel(/unpaid break/i).fill("30");
+  await expect(night).toContainText("Gross8 hours");
+  await expect(night).toContainText("Net7 hours 30 minutes");
+  await expect(night).toContainText("Ends next day");
+
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).focus();
+  await page.keyboard.press("Enter");
+
+  await expect(
+    page.getByRole("cell", {
+      name: /thursday, october 1, 2026 — morning duty/i,
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Shift legend")).toContainText(
+    "Morning duty (AM)",
+  );
+  await expect(page.getByLabel("Shift legend")).toContainText(
+    "22:00–06:00, ends next day · 7 hours 30 minutes net",
+  );
+  await expect(
+    page.getByText(/shared links include the base rotation/i),
+  ).toBeVisible();
+  await expect(page).toHaveURL(
+    /\?v=1&kind=preset&p=2-day-2-night-4-off&s=2026-10-01&m=2026-10$/,
+  );
+  expect(page.url()).not.toMatch(/morning|22%3A00|builtin/i);
+
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByLabel("Shift legend")).toContainText("Morning duty");
+  await expect(page.getByText("Shift details (optional)")).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+
+  await page.reload();
+  await expect(
+    page.getByRole("cell", {
+      name: /thursday, october 1, 2026 — day shift/i,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/shared links include the base rotation/i),
+  ).toHaveCount(0);
 });
 
 test("copies a canonical navigated schedule link and restores it", async ({
@@ -290,7 +348,7 @@ test("restores rotating and fixed presets through browser history", async ({
   await page.getByLabel("Shift pattern").selectOption("7-on-7-off-fixed");
   await page.getByRole("radio", { name: "Night shift" }).check();
   await startDate(page).fill("2026-12-01");
-  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /update schedule/i }).click();
 
   await page.goBack();
   await expect(page.getByLabel("Shift pattern")).toHaveValue(
@@ -342,6 +400,19 @@ test("downloads the visible month as an all-day ICS calendar", async ({
   await page.goto("/");
   await page.getByRole("radio", { name: /^custom cycle/i }).check();
   await page.getByLabel(/shift for cycle day 2/i).selectOption("night");
+  await page.getByText("Shift details (optional)").click();
+  await page
+    .getByRole("group", { name: "Day details" })
+    .getByLabel("Shift name")
+    .fill("Private morning");
+  await page
+    .getByRole("group", { name: "Night details" })
+    .getByLabel(/start time/i)
+    .fill("22:00");
+  await page
+    .getByRole("group", { name: "Night details" })
+    .getByLabel(/end time/i)
+    .fill("06:00");
   await startDate(page).fill("2026-10-01");
   await page.getByRole("button", { name: /generate schedule/i }).click();
 
@@ -492,7 +563,7 @@ test("restores different URL-backed week preferences with Back and Forward", asy
   await page.getByRole("radio", { name: "Sunday" }).check();
 
   await startDate(page).fill("2026-12-01");
-  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /update schedule/i }).click();
   await page.getByRole("radio", { name: "Monday" }).check();
   await expect(page).toHaveURL(/s=2026-12-01.*m=2026-12$/);
 
@@ -575,8 +646,7 @@ for (const width of [320, 390, 768, 1024, 1440]) {
     await page.goto("/");
     if (width === 320) {
       const presetSelect = page.getByLabel("Shift pattern");
-      await presetSelect.focus();
-      await page.keyboard.press("End");
+      await presetSelect.selectOption("7-day-7-off-7-night-7-off");
       await expect(presetSelect).toHaveValue("7-day-7-off-7-night-7-off");
       await expect(
         page.getByRole("heading", {
@@ -585,6 +655,10 @@ for (const width of [320, 390, 768, 1024, 1440]) {
         }),
       ).toBeVisible();
     }
+    await page.getByText("Shift details (optional)").click();
+    await expect(
+      page.getByRole("group", { name: /details$/i }).first(),
+    ).toBeVisible();
     await startDate(page).fill("2026-10-01");
     await page.getByRole("button", { name: /generate schedule/i }).click();
     await expect(

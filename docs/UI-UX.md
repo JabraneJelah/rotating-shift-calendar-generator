@@ -48,6 +48,14 @@ Failed submission retains all values, connects field copy with `aria-describedby
 
 At narrow widths the form stacks, cycle rows remain bounded, the seven-column calendar compacts its spacing and type, and no page-level horizontal scroll is introduced. Wider layouts increase spacing without turning the focused workflow into a dashboard.
 
+## Optional personal shift details
+
+Phase 6A2 places one native, collapsed `Shift details (optional)` disclosure after the base schedule controls. The normal generator therefore retains its previous speed and density. Fixed schedules show only the selected Day or Night editor; rotating and mixed custom schedules show both. Unused Evening/Other definitions are not exposed.
+
+Each visible editor has labelled name, short-label, curated-color, native time, explicit 24-hour, and unpaid-break controls. Palette choices include visible color names and selection state; every result still carries text and an icon. Time fields stack on narrow screens. Valid time pairs show gross, break, net, and same-day/next-day wording. The daylight-saving limitation appears only after a complete timed pair exists.
+
+Edits remain drafts until Generate/Update is activated. Validation errors appear inline and in the established focusable summary; invalid edits preserve the last applied result. Reset restores default untimed Day/Night details without touching pattern, date, or week-start values. Applied calendars keep short labels in cells and move the full name/time/duration to accessible cell descriptions and a wrapping legend. Configuration controls remain hidden in print, while textual custom legends remain printable.
+
 ## Shipped share and calendar-file actions
 
 After a valid schedule is generated or restored, a compact action panel appears between the monthly summary and calendar grid. The primary generation workflow remains visually dominant. `Copy schedule link` copies the canonical V1 URL including the visible month and announces success in a polite live region. Success and error announcements clear after a short interval without animation or focus movement.

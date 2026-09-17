@@ -28,6 +28,8 @@ Phase 5A adds only optional presentation state to the existing codec: omission m
 
 Phase 5B2 extends V1 additively. Fixed preset URLs require `shift=day|night`; concrete rotating preset URLs omit and reject `shift`. New preset identifiers remain query configuration under the homepage canonical. No guide, sitemap entry, metadata variant, dynamic pattern route, or programmatically generated page is created. Future DuPont, 2D/2N/4O, or combined 7-on/7-off content requires separate editorial review.
 
+Phase 6A2 personal shift names, labels, colors, times, breaks, and definition IDs are intentionally excluded from V1 query parameters, copied links, canonicals, metadata, and structured data. Reload and shared-link restoration recover only the compatible base rotation. No V2 schema, compressed payload, content route, or sitemap entry is introduced.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

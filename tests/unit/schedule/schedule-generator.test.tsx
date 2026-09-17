@@ -12,6 +12,10 @@ import {
   SCHEDULE_ERROR_MESSAGES,
   getScheduleErrorMessage,
 } from "@/features/schedule/presentation/schedule-error-messages";
+import {
+  PLANNER_ERROR_MESSAGES,
+  getPlannerErrorMessage,
+} from "@/features/schedule/presentation/planner-error-messages";
 
 function setStartDate(value: string) {
   fireEvent.change(screen.getByLabelText(/pattern start date/i), {
@@ -21,6 +25,10 @@ function setStartDate(value: string) {
 
 function generate() {
   fireEvent.click(screen.getByRole("button", { name: /generate schedule/i }));
+}
+
+function openShiftDetails() {
+  fireEvent.click(screen.getByText("Shift details (optional)"));
 }
 
 let writeText: ReturnType<typeof vi.fn>;
@@ -445,6 +453,207 @@ describe("monthly generation", () => {
   });
 });
 
+describe("optional personal shift details", () => {
+  it("starts collapsed and shows only the working definition for fixed presets", () => {
+    render(<ScheduleGenerator />);
+
+    const summary = screen.getByText("Shift details (optional)");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+    openShiftDetails();
+    expect(screen.getByRole("group", { name: "Day details" })).toBeVisible();
+    expect(
+      screen.queryByRole("group", { name: "Night details" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText(/^night shift$/i));
+    expect(
+      screen.queryByRole("group", { name: "Day details" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Night details" })).toBeVisible();
+  });
+
+  it("shows both definitions for rotating and mixed custom schedules", () => {
+    render(<ScheduleGenerator />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Shift pattern" }), {
+      target: { value: "2-day-2-night-4-off" },
+    });
+    openShiftDetails();
+
+    expect(screen.getByRole("group", { name: "Day details" })).toBeVisible();
+    expect(screen.getByRole("group", { name: "Night details" })).toBeVisible();
+
+    fireEvent.click(screen.getByLabelText(/custom cycle/i));
+    fireEvent.change(screen.getByLabelText(/shift for cycle day 2/i), {
+      target: { value: "night" },
+    });
+    expect(screen.getByRole("group", { name: "Day details" })).toBeVisible();
+    expect(screen.getByRole("group", { name: "Night details" })).toBeVisible();
+  });
+
+  it("applies private names, labels, colors, and overnight hours without changing V1", async () => {
+    render(<ScheduleGenerator />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Shift pattern" }), {
+      target: { value: "2-day-2-night-4-off" },
+    });
+    setStartDate("2026-10-01");
+    openShiftDetails();
+
+    const day = screen.getByRole("group", { name: "Day details" });
+    const night = screen.getByRole("group", { name: "Night details" });
+    fireEvent.change(within(day).getByLabelText("Shift name"), {
+      target: { value: "Morning duty" },
+    });
+    fireEvent.change(within(day).getByLabelText("Short label"), {
+      target: { value: "AM" },
+    });
+    fireEvent.click(within(day).getByLabelText("Blue"));
+    fireEvent.change(within(night).getByLabelText(/start time/i), {
+      target: { value: "22:00" },
+    });
+    fireEvent.change(within(night).getByLabelText(/end time/i), {
+      target: { value: "06:00" },
+    });
+    fireEvent.change(within(night).getByLabelText(/unpaid break/i), {
+      target: { value: "30" },
+    });
+
+    expect(night).toHaveTextContent("Gross8 hours");
+    expect(night).toHaveTextContent("Net7 hours 30 minutes");
+    expect(night).toHaveTextContent("Ends next day");
+    expect(screen.getByText(/actual elapsed time can differ/i)).toBeVisible();
+
+    generate();
+
+    expect(
+      await screen.findByRole("cell", {
+        name: /thursday, october 1, 2026 — morning duty/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Shift legend")).toHaveTextContent(
+      "Morning duty (AM)",
+    );
+    expect(screen.getByLabelText("Shift legend")).toHaveTextContent(
+      /22:00–06:00, ends next day · 7 hours 30 minutes net/i,
+    );
+    expect(
+      screen.getByText(/shared links include the base rotation/i),
+    ).toBeVisible();
+    expect(window.location.search).toBe(
+      "?v=1&kind=preset&p=2-day-2-night-4-off&s=2026-10-01&m=2026-10",
+    );
+    expect(window.location.search).not.toMatch(/morning|22%3A00|builtin/i);
+    expect(
+      screen.getByRole("button", { name: /update schedule/i }),
+    ).toBeEnabled();
+  });
+
+  it("rejects equal times until the explicit 24-hour option is selected", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    openShiftDetails();
+    const day = screen.getByRole("group", { name: "Day details" });
+
+    fireEvent.change(within(day).getByLabelText(/start time/i), {
+      target: { value: "08:00" },
+    });
+    fireEvent.change(within(day).getByLabelText(/end time/i), {
+      target: { value: "08:00" },
+    });
+    expect(day).toHaveTextContent(/equal start and end times require/i);
+    generate();
+
+    const alert = screen.getByRole("alert", {
+      name: /check your schedule details/i,
+    });
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    await waitFor(() => expect(alert).toHaveFocus());
+
+    fireEvent.click(within(day).getByLabelText(/explicit 24-hour shift/i));
+    expect(day).toHaveTextContent("Gross24 hours");
+    expect(day).toHaveTextContent("Explicit 24-hour shift · Ends next day");
+    generate();
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+  });
+
+  it("rejects an excessive break and preserves the last applied result", async () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    openShiftDetails();
+    const day = screen.getByRole("group", { name: "Day details" });
+    fireEvent.change(within(day).getByLabelText("Shift name"), {
+      target: { value: "Early duty" },
+    });
+    fireEvent.change(within(day).getByLabelText(/start time/i), {
+      target: { value: "07:00" },
+    });
+    fireEvent.change(within(day).getByLabelText(/end time/i), {
+      target: { value: "15:00" },
+    });
+    generate();
+    await screen.findAllByRole("cell", { name: /early duty/i });
+
+    fireEvent.change(within(day).getByLabelText(/unpaid break/i), {
+      target: { value: "480" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /update schedule/i }));
+
+    expect(
+      screen.getAllByText(/break must be shorter than the shift/i).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("cell", { name: /early duty/i }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("resets edited details without changing the base form", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    openShiftDetails();
+    const day = screen.getByRole("group", { name: "Day details" });
+    fireEvent.change(within(day).getByLabelText("Shift name"), {
+      target: { value: "Early duty" },
+    });
+    fireEvent.change(within(day).getByLabelText(/start time/i), {
+      target: { value: "07:00" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /reset shift details/i }),
+    );
+
+    expect(within(day).getByLabelText("Shift name")).toHaveValue("Day shift");
+    expect(within(day).getByLabelText("Short label")).toHaveValue("D");
+    expect(within(day).getByLabelText(/start time/i)).toHaveValue("");
+    expect(screen.getByLabelText(/pattern start date/i)).toHaveValue(
+      "2026-10-01",
+    );
+    expect(window.location.search).toBe("");
+  });
+
+  it("drops ephemeral details when the base URL is restored", async () => {
+    const rendered = render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    openShiftDetails();
+    const day = screen.getByRole("group", { name: "Day details" });
+    fireEvent.change(within(day).getByLabelText("Shift name"), {
+      target: { value: "Private duty" },
+    });
+    generate();
+    await screen.findAllByRole("cell", { name: /private duty/i });
+    const baseUrl = window.location.href;
+
+    rendered.unmount();
+    window.history.replaceState(null, "", baseUrl);
+    render(<ScheduleGenerator />);
+
+    await screen.findAllByRole("cell", { name: /day shift/i });
+    openShiftDetails();
+    expect(screen.getByLabelText("Shift name")).toHaveValue("Day shift");
+    expect(
+      screen.queryByText(/shared links include the base rotation/i),
+    ).toBeNull();
+  });
+});
+
 describe("yearly generation", () => {
   it("switches to twelve semantic month tables without changing the URL", async () => {
     render(<ScheduleGenerator />);
@@ -734,5 +943,15 @@ describe("domain error presentation", () => {
     expect(
       getScheduleErrorMessage({ code: "UNSUPPORTED_CONFIG_VERSION" }),
     ).toMatch(/unsupported version/i);
+  });
+
+  it("maps every planner error code to user-facing copy", () => {
+    expect(Object.values(PLANNER_ERROR_MESSAGES).every(Boolean)).toBe(true);
+    expect(getPlannerErrorMessage({ code: "EQUAL_SHIFT_TIMES" })).toMatch(
+      /24-hour/i,
+    );
+    expect(getPlannerErrorMessage({ code: "INVALID_SHIFT_COLOR" })).toMatch(
+      /available shift colors/i,
+    );
   });
 });

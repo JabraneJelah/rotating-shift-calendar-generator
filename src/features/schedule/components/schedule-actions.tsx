@@ -23,6 +23,7 @@ type ScheduleActionsProps = {
   readonly weekStart: WeekStart;
   readonly activeView: "month" | "year";
   readonly onPrint: () => void;
+  readonly hasPrivateShiftDetails?: boolean;
 };
 
 type ActionStatus = {
@@ -37,6 +38,7 @@ export function ScheduleActions({
   view,
   yearlyView,
   weekStart,
+  hasPrivateShiftDetails = false,
 }: ScheduleActionsProps) {
   const [status, setStatus] = useState<ActionStatus | null>(null);
   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
@@ -198,6 +200,12 @@ export function ScheduleActions({
         Copy a restorable schedule link or export an all-day calendar file.
         Printing uses the active {activeView} view.
       </p>
+      {hasPrivateShiftDetails ? (
+        <p className="mt-2 text-sm font-semibold">
+          Shared links include the base rotation but not your private shift
+          details.
+        </p>
+      ) : null}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button onClick={handleCopy} type="button" variant="outline">
           <Copy aria-hidden="true" className="mr-2 size-4" />

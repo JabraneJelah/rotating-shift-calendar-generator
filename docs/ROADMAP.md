@@ -80,6 +80,33 @@ Eight named families were reviewed against authoritative sources, current domain
 
 Exit criteria were met: formatting, lint, type checking, all 199 unit/component tests, all 39 browser tests, and the production build passed. Legacy fixed URLs, shift-free rotating URLs, reload and history restoration, sharing, exports, print, keyboard use, and responsive layouts are covered.
 
+## Phase 6A — advanced personal planner
+
+### Phase 6A1 — domain and product specification (complete)
+
+- Researched personal-planner expectations, time/DST constraints, exception semantics, timed ICS options, local persistence, accessibility, privacy, and phased delivery
+- Selected an additive planner layer that preserves the date-only engine and V1
+
+### Phase 6A2 — shift definitions and nominal calculations (complete)
+
+- Optional, collapsed personal Day/Night names, labels, and curated colors
+- Strict time-only values, same-day/overnight/explicit-24-hour calculations, and unpaid breaks
+- Separate pure planner registry and editable/applied UI state
+- Custom accessible calendar/legend presentation without aggregate hours
+- Ephemeral private details excluded from V1 sharing and unchanged all-day ICS
+
+### Phase 6A3 — exceptions, effective projections, and statistics (planned)
+
+Date replacements, leave/sick/training/additional-work semantics, restoration, and aggregate effective statistics require a separate implementation plan.
+
+### Phase 6A4 — explicitly zoned timed ICS (planned)
+
+Timed export requires an explicit IANA timezone, DST policy, `VTIMEZONE`, and client-compatibility verification. Existing exports remain all-day until then.
+
+## Phase 6B — local persistence, backup, and offline use (planned)
+
+IndexedDB saved planners, versioned JSON backup/import, and PWA/offline behavior remain separate. Phase 6A2 introduces no browser storage.
+
 ## Later evaluation
 
 Only after real usage: advertising, localization, saved schedules/accounts, and server persistence. Each requires a separate product, privacy, performance, and maintenance decision.

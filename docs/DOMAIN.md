@@ -1,6 +1,6 @@
 # Schedule domain
 
-This document defines the schedule contract through Phase 5B2. The engine models repeating calendar-day categories, not employment policy or exact work times.
+This document defines the schedule and optional personal-planner contracts through Phase 6A2. The base engine models repeating calendar-day categories, not employment policy or exact work times.
 
 ## Terms
 
@@ -155,6 +155,23 @@ UNKNOWN_PARAMETER          INVALID_CYCLE_TOKEN
 
 UI code will map codes to accessible user-facing language later; domain errors do not contain presentation copy. Impossible states passed around as already validated types are programmer invariants and may throw.
 
+## Optional personal shift-definition layer
+
+Phase 6A2 adds a separate pure planner domain without widening `ScheduleOccurrence`. Generated `day` and `night` values may map to immutable personal working definitions; `off` remains a base schedule occurrence and has no working definition. The initial UI owns deterministic `builtin-day` and `builtin-night` definitions. The domain also recognizes Evening and Other categories as future exception groundwork, but they are not preset/custom-cycle tokens or repeating positions.
+
+A registry contains at most 12 definitions. Each has a validated stable ID, a trimmed unique name of 1–40 characters, a trimmed short label of 1–4 characters, a semantic category, and one of the curated Amber, Blue, Indigo, Violet, Teal, Green, Rose, or Slate tokens. Duplicate IDs and case-insensitive duplicate names are invalid; duplicate short labels are permitted because accessible full names remain present. Raw CSS colors are never accepted.
+
+Local times are branded canonical `HH:mm` strings with hours 00–23 and minutes 00–59. They contain no date, locale, offset, or timezone. A definition is either untimed with zero break or has both start and end values. An end earlier than the start crosses midnight. Equal times are invalid unless `is24Hours` is explicitly true, in which case gross duration is 1,440 minutes. Unequal times reject the 24-hour flag. Break minutes are a non-negative safe integer strictly less than gross duration.
+
+```text
+gross = endMinutes + (crossesMidnight ? 1,440 : 0) - startMinutes
+net = gross - unpaidBreakMinutes
+```
+
+For explicit equal-time 24-hour shifts, gross is 1,440. Calculations are nominal wall-clock minutes and do not adjust across daylight-saving changes. The planner domain imports no `Date`, timezone, locale, React, Next.js, browser, or storage API.
+
+Personal definitions are ephemeral through Phase 6A2. They do not enter V1 URLs, history state, copied links, `ScheduleConfig`, `ScheduleOccurrence`, or all-day ICS identity/content. Reload restores only the base V1 schedule. Definitions and aggregate effective statistics may become durable only through separately approved later phases.
+
 ## Deferred edge cases
 
-Overnight timestamps, daylight-saving interpretation of shift times, time-zone conversion, exact start/end times, pay, breaks, overtime, and employer-specific alternating rotations remain deferred. Monthly and complete-year ICS export map existing date-only occurrences to all-day events with an exclusive next-calendar-date end; they do not add time-aware domain behavior. Any future timed behavior requires separate contracts and unit tests without weakening the date-only model.
+Timezone conversion, DST-adjusted elapsed duration, date exceptions, leave, sickness, training, additional work, schedule-wide hour totals, pay, employer-specific alternating rotations, and multiple shifts per date remain deferred. Monthly and complete-year ICS export still map base date-only occurrences to all-day events with an exclusive next-calendar-date end. Explicitly zoned timed export requires the separate Phase 6A4 contract without weakening the date-only model.

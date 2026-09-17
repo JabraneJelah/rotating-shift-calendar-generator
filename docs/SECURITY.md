@@ -10,6 +10,8 @@ The MVP should generate schedules locally or during the request without retainin
 
 Do not put secrets, private notes, access tokens, or sensitive personal data into URLs, browser logs, analytics events, or ICS metadata. Any future telemetry requires a documented event inventory, retention policy, consent/legal review where applicable, and a way to exclude user-entered labels.
 
+Phase 6A2 personal details exist only in in-memory React state. They are not written to cookies, `localStorage`, IndexedDB, URLs, history payloads, ICS files, logs, analytics, or a server. A refresh discards them. Copied links disclose that only the base rotation is shared whenever private details have been applied.
+
 ## Input and output controls
 
 - Validate all URL, form, and environment input at its boundary with length and shape limits.
@@ -18,6 +20,7 @@ Do not put secrets, private notes, access tokens, or sensitive personal data int
 - Prevent formula injection if CSV-like formats are ever added.
 - Generate ICS with standards-aware escaping and safe line folding; do not interpolate raw text.
 - Keep dependencies minimal, exact, audited, and updated through reviewed changes.
+- Validate personal names, short labels, identifiers, curated color tokens, canonical time strings, 24-hour intent, and integer breaks through the pure planner boundary. User text is rendered by React as text and is not inserted as HTML.
 
 ## Web controls
 

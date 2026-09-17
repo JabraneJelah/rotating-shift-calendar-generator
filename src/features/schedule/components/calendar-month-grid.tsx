@@ -5,12 +5,16 @@ import type {
   ShiftKind,
   WeekStart,
 } from "@/features/schedule/domain";
+import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
 import {
   formatFullDate,
   getWeekdayLabels,
-  SHIFT_LABELS,
-  SHIFT_SHORT_LABELS,
 } from "@/features/schedule/presentation/calendar-view";
+import {
+  formatShiftTimeSummary,
+  getShiftDisplay,
+  SHIFT_COLOR_PRESENTATION,
+} from "@/features/schedule/presentation/planner-shift-presentation";
 import { cn } from "@/lib/utils";
 
 type CalendarMonthGridProps = {
@@ -18,6 +22,7 @@ type CalendarMonthGridProps = {
   readonly weeks: readonly (readonly (ScheduleOccurrence | null)[])[];
   readonly weekStart: WeekStart;
   readonly compact?: boolean;
+  readonly planner?: ShiftDefinitionRegistry | null;
 };
 
 export const shiftPresentation = {
@@ -31,6 +36,7 @@ export function CalendarMonthGrid({
   weeks,
   weekStart,
   compact = false,
+  planner = null,
 }: CalendarMonthGridProps) {
   const weekdayLabels = getWeekdayLabels(weekStart);
 
@@ -72,9 +78,19 @@ export function CalendarMonthGrid({
               }
 
               const presentation = shiftPresentation[occurrence.shift];
+              const display = getShiftDisplay(occurrence.shift, planner);
               const Icon = presentation.icon;
               const dayNumber = Number(occurrence.date.slice(-2));
-              const fullLabel = `${formatFullDate(occurrence.date)} — ${SHIFT_LABELS[occurrence.shift]}`;
+              const timeSummary =
+                display.definition === null
+                  ? null
+                  : formatShiftTimeSummary(display.definition);
+              const fullLabel = `${formatFullDate(occurrence.date)} — ${display.name}${timeSummary === null ? "" : `, ${timeSummary}`}`;
+              const cellClassName =
+                display.definition === null
+                  ? presentation.className
+                  : SHIFT_COLOR_PRESENTATION[display.definition.color]
+                      .cellClassName;
 
               return (
                 <td
@@ -82,7 +98,7 @@ export function CalendarMonthGrid({
                   className={cn(
                     "rounded-lg border align-top",
                     compact ? "h-8" : "h-14 sm:h-20",
-                    presentation.className,
+                    cellClassName,
                   )}
                   key={occurrence.date}
                 >
@@ -115,8 +131,8 @@ export function CalendarMonthGrid({
                       }
                     >
                       {compact
-                        ? SHIFT_SHORT_LABELS[occurrence.shift].slice(0, 1)
-                        : SHIFT_SHORT_LABELS[occurrence.shift]}
+                        ? display.shortLabel.slice(0, 1)
+                        : display.shortLabel}
                     </span>
                   </time>
                 </td>

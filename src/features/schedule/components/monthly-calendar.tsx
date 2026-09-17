@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ISOYearMonth, ScheduleConfig } from "@/features/schedule/domain";
+import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
 import {
   getAdjacentViewMonth,
   getScheduleName,
@@ -16,6 +17,7 @@ type MonthlyCalendarProps = {
   readonly view: MonthlyCalendarView;
   readonly headingRef: React.RefObject<HTMLHeadingElement | null>;
   readonly onNavigate: (viewMonth: ISOYearMonth) => void;
+  readonly planner?: ShiftDefinitionRegistry | null;
 };
 
 export function MonthlyCalendar({
@@ -23,6 +25,7 @@ export function MonthlyCalendar({
   view,
   headingRef,
   onNavigate,
+  planner = null,
 }: MonthlyCalendarProps) {
   const previousMonth = getAdjacentViewMonth(view.viewMonth, -1);
   const nextMonth = getAdjacentViewMonth(view.viewMonth, 1);
@@ -127,9 +130,10 @@ export function MonthlyCalendar({
           label={view.label}
           weeks={view.weeks}
           weekStart={view.weekStart}
+          planner={planner}
         />
       </div>
-      <ShiftLegend />
+      <ShiftLegend planner={planner} />
     </section>
   );
 }

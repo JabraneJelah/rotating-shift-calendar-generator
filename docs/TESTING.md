@@ -9,6 +9,8 @@
 Preset tests assert every exact full sequence, definition kind, count, anchor position, positive and negative wrap, boundary behavior, and immutability. Codec tests cover Day and Night for every fixed preset, shift-free rotating URLs, forbidden/missing shift fields, canonical order, and legacy V1 fixtures. Component tests verify native optgroups, complete preview alternatives, conditional shift controls, preserved fixed choice, unsubmitted editing, generation, history, sharing, and custom-mode regression.
 
 - **ICS unit tests:** explicit RFC 5545 envelope, CRLF, date-only boundaries, exclusive ends, summaries, ordering, deterministic identity, injected timestamps, escaping, UTF-8 folding, month/year filename and MIME behavior, exact 365/366-event scope, and typed invalid-input behavior.
+- **Planner-domain tests:** Node-environment checks for strict `HH:mm`, nominal same-day/overnight/24-hour arithmetic, break rules, immutable definition registries, IDs, limits, categories, curated colors, and machine-readable failures. The same planner/schedule suite runs under UTC and America/New_York to prove timezone independence.
+- **Planner UI tests:** collapsed disclosure, fixed/rotating/custom visibility, editable/applied separation, accessible errors, custom calendar/legend presentation, reset, private sharing, reload loss, all-day export regression, print, keyboard use, and responsive overflow.
 - **Build and static checks:** strict TypeScript, ESLint, Prettier, and the production build are required checks.
 
 ## Commands
@@ -36,6 +38,8 @@ Year-view tests assert one ordered set of twelve month models, 365/366 complete 
 Week-start tests prove omission preserves legacy Monday output, `ws=sun` round-trips canonically, invalid or duplicate values fail, weekday headings rotate, padding remains complete, occurrences are neither missing nor duplicated, and Back/Forward restores the preference. Insight tests inject an ISO today value and cover tomorrow, long Off runs, leap dates, negative anchor offsets, one-cycle bounds, and supported-year overflow. Weekend tests count Saturday/Sunday dates rather than complete weekends and remain independent of displayed week order.
 
 Date-only tests must not rely on the machine's local zone. The domain suite should run under at least `TZ=UTC` and `TZ=America/New_York` when the environment permits, with identical results. Daylight-saving-adjacent dates are calendar days and must not be skipped or duplicated.
+
+Pure planner tests use the Node test environment and must not rely on React, Next.js, DOM/browser globals, locale formatting, timezone conversion, or JavaScript `Date`.
 
 Every bug fix should add the smallest regression test at the lowest useful layer. Do not claim a command passed unless it was run in the current change.
 

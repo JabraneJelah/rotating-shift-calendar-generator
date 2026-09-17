@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ScheduleConfig } from "@/features/schedule/domain";
+import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
 import { getScheduleName } from "@/features/schedule/presentation/calendar-view";
 import {
   getAdjacentYear,
@@ -16,6 +17,7 @@ type YearlyCalendarProps = {
   readonly view: YearlyCalendarView;
   readonly headingRef: React.RefObject<HTMLHeadingElement | null>;
   readonly onNavigate: (year: number) => void;
+  readonly planner?: ShiftDefinitionRegistry | null;
 };
 
 export function YearlyCalendar({
@@ -23,6 +25,7 @@ export function YearlyCalendar({
   view,
   headingRef,
   onNavigate,
+  planner = null,
 }: YearlyCalendarProps) {
   const previousYear = getAdjacentYear(view.year, -1);
   const nextYear = getAdjacentYear(view.year, 1);
@@ -144,12 +147,13 @@ export function YearlyCalendar({
               label={month.label}
               weeks={month.weeks}
               weekStart={view.weekStart}
+              planner={planner}
             />
           </article>
         ))}
       </div>
 
-      <ShiftLegend />
+      <ShiftLegend planner={planner} />
     </section>
   );
 }

@@ -15,9 +15,14 @@ import {
   getPresetDefinition,
 } from "@/features/schedule/domain";
 import type { ScheduleFieldErrors } from "@/features/schedule/presentation/schedule-error-messages";
+import type { PlannerFieldErrors } from "@/features/schedule/presentation/planner-error-messages";
 
 import { CustomCycleEditor } from "./custom-cycle-editor";
 import { PresetCyclePreview } from "./preset-cycle-preview";
+import {
+  ShiftDetailsPanel,
+  type EditableShiftDetails,
+} from "./shift-details-panel";
 
 export type ScheduleMode = "preset" | "custom";
 
@@ -29,11 +34,16 @@ type ScheduleFormProps = {
   readonly customCycle: readonly ShiftKind[];
   readonly disabled: boolean;
   readonly errors: ScheduleFieldErrors;
+  readonly plannerErrors: PlannerFieldErrors;
+  readonly shiftDetails: EditableShiftDetails;
+  readonly hasGenerated: boolean;
   readonly onModeChange: (mode: ScheduleMode) => void;
   readonly onPresetChange: (presetId: PresetId) => void;
   readonly onWorkingShiftChange: (shift: WorkingShiftKind) => void;
   readonly onStartDateChange: (value: string) => void;
   readonly onCustomCycleChange: (cycle: readonly ShiftKind[]) => void;
+  readonly onShiftDetailsChange: (value: EditableShiftDetails) => void;
+  readonly onShiftDetailsReset: () => void;
   readonly onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -48,11 +58,16 @@ export function ScheduleForm({
   customCycle,
   disabled,
   errors,
+  plannerErrors,
+  shiftDetails,
+  hasGenerated,
   onModeChange,
   onPresetChange,
   onWorkingShiftChange,
   onStartDateChange,
   onCustomCycleChange,
+  onShiftDetailsChange,
+  onShiftDetailsReset,
   onSubmit,
 }: ScheduleFormProps) {
   const selectedPreset = getPresetDefinition(presetId);
@@ -64,6 +79,14 @@ export function ScheduleForm({
     (definition): definition is RotatingPresetDefinition =>
       definition.type === "rotating",
   );
+  const workingKinds =
+    mode === "custom"
+      ? customCycle
+      : selectedPreset.type === "fixed"
+        ? [workingShift]
+        : selectedPreset.cycle;
+  const showDay = workingKinds.includes("day");
+  const showNight = workingKinds.includes("night");
 
   return (
     <form className="space-y-6" noValidate onSubmit={onSubmit}>
@@ -231,9 +254,19 @@ export function ScheduleForm({
         ) : null}
       </div>
 
+      <ShiftDetailsPanel
+        disabled={disabled}
+        errors={plannerErrors}
+        onChange={onShiftDetailsChange}
+        onReset={onShiftDetailsReset}
+        showDay={showDay}
+        showNight={showNight}
+        value={shiftDetails}
+      />
+
       <Button className="w-full sm:w-auto" disabled={disabled} type="submit">
         <CalendarPlus2 aria-hidden="true" className="mr-2 size-4" />
-        Generate schedule
+        {hasGenerated ? "Update schedule" : "Generate schedule"}
       </Button>
     </form>
   );

@@ -248,3 +248,23 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** Users viewing a year need one explicit import file without changing the stable monthly export or inventing recurrence rules.
 
 **Consequences:** The serializer accepts a discriminated month/year request, requires exact ordered gap-free period coverage, and reuses all-day events, escaping, folding, UIDs, timestamps, and browser-only download behavior. Year files contain 365/366 events and are named `shift-calendar-YYYY.ics`. Year 9999 fails atomically because its final exclusive `DTEND` is outside the supported domain. Re-import behavior is provider-dependent, so the UI warns about possible duplicates. No dependency or calendar-provider integration is added.
+
+## D-037 — Additive personal shift-definition layer
+
+**Status:** Accepted
+
+**Decision:** Preserve the date-only engine and `ScheduleOccurrence`; add a separate immutable registry mapping generated Day/Night categories to optional personal definitions with stable built-in IDs, names, short labels, semantic categories, and curated color tokens.
+
+**Reason:** Display metadata and future exception concepts should not weaken preset, date arithmetic, V1 URL, or export contracts. Evening/Other definitions are useful future vocabulary but are not repeating positions in Phase 6A2.
+
+**Consequences:** At most 12 definitions are accepted; IDs and case-insensitive names are unique; labels are 1–4 characters and may repeat; raw colors are rejected. The UI edits only built-in Day/Night definitions and keeps editable and applied state separate. Details are ephemeral and excluded from links.
+
+## D-038 — Nominal local-time calculations without timezone inference
+
+**Status:** Accepted
+
+**Decision:** Validate strict `HH:mm` values and calculate durations with integer wall-clock minutes. Earlier end times cross midnight; equal times require an explicit 24-hour flag; break minutes must be non-negative and shorter than gross duration.
+
+**Reason:** Workers can describe familiar shift hours without introducing inaccurate browser-timezone assumptions or changing the date-only engine.
+
+**Consequences:** `22:00 → 06:00` is 480 nominal minutes and `08:00 → 08:00` is invalid unless explicitly 24 hours. DST can change actual elapsed time and is disclosed. Existing ICS remains all-day; explicitly zoned timed export waits for Phase 6A4.

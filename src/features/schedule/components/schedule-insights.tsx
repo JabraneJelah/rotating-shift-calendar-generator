@@ -1,15 +1,18 @@
 import type { DomainResult } from "@/features/schedule/domain";
-import {
-  formatFullDate,
-  SHIFT_LABELS,
-} from "@/features/schedule/presentation/calendar-view";
+import type { ShiftDefinitionRegistry } from "@/features/schedule/planner";
+import { formatFullDate } from "@/features/schedule/presentation/calendar-view";
+import { getShiftDisplay } from "@/features/schedule/presentation/planner-shift-presentation";
 import type { ScheduleInsights as ScheduleInsightsValue } from "@/features/schedule/presentation/schedule-insights";
 
 type ScheduleInsightsProps = {
   readonly result: DomainResult<ScheduleInsightsValue>;
+  readonly planner?: ShiftDefinitionRegistry | null;
 };
 
-export function ScheduleInsights({ result }: ScheduleInsightsProps) {
+export function ScheduleInsights({
+  result,
+  planner = null,
+}: ScheduleInsightsProps) {
   return (
     <section
       aria-labelledby="schedule-insights-heading"
@@ -25,7 +28,8 @@ export function ScheduleInsights({ result }: ScheduleInsightsProps) {
               Next schedule position
             </dt>
             <dd className="mt-1 font-semibold">
-              {SHIFT_LABELS[result.value.nextPosition.shift]} tomorrow
+              {getShiftDisplay(result.value.nextPosition.shift, planner).name}{" "}
+              tomorrow
             </dd>
           </div>
           <div>
@@ -33,8 +37,8 @@ export function ScheduleInsights({ result }: ScheduleInsightsProps) {
               Next working day
             </dt>
             <dd className="mt-1 font-semibold">
-              {SHIFT_LABELS[result.value.nextWorkingDay.shift]} on{" "}
-              {formatFullDate(result.value.nextWorkingDay.date)}
+              {getShiftDisplay(result.value.nextWorkingDay.shift, planner).name}{" "}
+              on {formatFullDate(result.value.nextWorkingDay.date)}
             </dd>
           </div>
         </dl>

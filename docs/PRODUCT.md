@@ -31,6 +31,7 @@ Enter a known or custom rotation once and receive a clear calendar that is easy 
 - ICS export and shareable configuration URLs
 - Indexable explanatory pages for supported patterns and calculators
 - Local-first operation without an account or saved server data
+- Optional session-only Day/Night names, short labels, curated colors, and nominal shift hours without changing the base rotation
 
 ## Supported preset library
 
@@ -44,9 +45,11 @@ Generated schedules offer a detailed monthly view and a compact twelve-month ove
 
 One shared insight panel names tomorrow's schedule position and the next Day/Night working occurrence. Month and year summaries count worked Saturday/Sunday dates, not complete weekends. Separate ICS actions export the preserved visible month or the actively displayed complete year; exports remain date-only and include Day, Night, and Off events. The print action prints whichever view is active. Print CSS requests a portrait monthly page or a two-page landscape year split after six months, but browser and printer settings ultimately control pagination, margins, headers, scaling, and background graphics.
 
+An optional, initially collapsed Shift details section may decorate generated Day and Night occurrences with a personal name, 1–4 character label, curated color, and optional local start/end time and unpaid break. These details use nominal wall-clock minutes: an earlier end crosses midnight, equal times require an explicit 24-hour choice, and a break must be shorter than the gross duration. They do not alter the generated date category, are not persisted after reload, and are not included in copied links or the existing all-day exports. Schedule-wide hour totals and date exceptions wait for Phase 6A3; zoned timed ICS waits for Phase 6A4.
+
 ## Non-goals
 
-The MVP is not an employer roster, payroll or time-clock system. It will not assign multiple employees, negotiate swaps, track leave, provide legal or fatigue advice, or guarantee that a named pattern matches a particular employer's implementation. Accounts, authentication, payments, a database, a CMS, a backend API, ads, analytics, and localization are outside the current foundation.
+The product is not an employer roster, payroll or time-clock system. It does not assign multiple employees, negotiate swaps, track leave, provide legal or fatigue advice, or guarantee that a named pattern matches a particular employer's implementation. Accounts, authentication, payments, a database, a CMS, a backend API, ads, analytics, and localization remain outside the current implementation.
 
 ## Success metrics
 
