@@ -40,7 +40,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <a
           className="print-hidden bg-foreground text-background focus-visible:ring-ring/45 sr-only fixed top-3 left-3 z-50 rounded-md px-4 py-2 outline-none focus:not-sr-only focus-visible:ring-3"

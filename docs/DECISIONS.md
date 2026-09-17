@@ -176,3 +176,35 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** The browser already provides accessible print dialogs and PDF destinations, while the rendered semantic calendars are the most auditable print source.
 
 **Consequences:** A text-labelled action invokes `window.print()`. Print CSS hides non-result UI, requests portrait monthly output and two landscape six-month year pages, and preserves identity, totals, non-color cues, and legend. No DOM cloning, canvas, PDF/print library, generated PDF dependency, or pagination guarantee is introduced; browser and printer settings remain authoritative.
+
+## D-028 — Small reviewed content cluster
+
+**Status:** Accepted
+
+**Reason:** Four distinct, useful routes connect real search questions to the working product without creating a mass programmatic-SEO surface.
+
+**Consequences:** Phase 4 has an explicit hub, two preset guides, and About; there is no dynamic pattern route, blog, year/location/profession variation, or automated content pipeline.
+
+## D-029 — Typed, domain-derived schedule content
+
+**Status:** Accepted
+
+**Reason:** Editorial explanations need stable structure while exact cycles and examples must not drift from calculation behavior.
+
+**Consequences:** Typed content owns prose and metadata, but imports the public domain API for preset cycles, counts, and dated examples. Content never becomes a domain dependency.
+
+## D-030 — BreadcrumbList-only initial structured data
+
+**Status:** Accepted
+
+**Reason:** Visible breadcrumb hierarchy has an accurate direct schema representation; other rich-result types would require unsupported identity, eligibility, or claims.
+
+**Consequences:** Hub/detail breadcrumbs emit safely serialized matching BreadcrumbList JSON-LD. There is no FAQ rich-result dependency, fabricated author identity, rating, review, organization, HowTo, or Article schema.
+
+## D-031 — Static server-rendered discovery content
+
+**Status:** Accepted
+
+**Reason:** The approved content requires no browser interaction and should be useful in the initial response with minimal JavaScript.
+
+**Consequences:** All four routes are explicit Server Components and statically prerendered; no CMS, MDX, database, client boundary, or SEO dependency is introduced.

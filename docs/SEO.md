@@ -55,3 +55,13 @@ Pattern pages may be data-backed only when every page has a verified schedule de
 - Measure LCP, INP, and CLS with field data before making performance claims.
 
 Duplicate result pages are prevented through clean-route canonicals, non-indexing of configuration URLs, and exclusion from the sitemap. A valid share configuration does not make a URL indexable: configured calendar results must canonicalize to the clean generator route unless a separately reviewed, substantive landing page exists.
+
+## Phase 4 published discovery cluster
+
+The final indexable inventory is `/`, `/shift-schedules`, `/shift-schedules/4-on-4-off`, `/shift-schedules/2-2-3`, and `/about`. Their intents are respectively product use, pattern comparison, exact eight-day guidance, exact fixed-shift fourteen-day guidance, and product methodology/trust. Each has unique authored metadata and a one-to-one clean canonical resolved through the validated site origin; query state remains canonicalized to `/`.
+
+The header links to the generator, hub, and About. The homepage links to the hub, both guides, and About; the hub links to both guides, the generator, and About; each guide links to its sibling, hub, generator, and About; About links to the hub and generator. These are ordinary crawlable anchors.
+
+Visible hub/detail breadcrumbs emit matching `BreadcrumbList` JSON-LD with absolute URLs. No FAQPage, HowTo, Article, author, organization, review, rating, or pricing schema is emitted. The sitemap contains exactly the five approved HTML routes and omits arbitrary modification dates, query URLs, exports, and print states.
+
+There is no dynamic page generator. Each guide has unique editorial treatment and a complete domain-derived example. Any future route requires manual intent, factual, metadata, internal-link, thin-content, visible/schema, and standalone-utility review before sitemap approval.

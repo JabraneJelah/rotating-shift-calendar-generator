@@ -66,6 +66,12 @@ The text-labelled print action invokes native browser printing for the active vi
 
 Motion is brief and functional. Honor `prefers-reduced-motion`, avoid autoplaying effects, and do not make important feedback depend on animation.
 
+## Content discovery pages
+
+Content pages use a comfortable `max-w-4xl` reading area (narrower for About), fluid gutters, one H1, direct introductory copy, restrained bordered sections, and the existing type and color system. Visible breadcrumbs wrap naturally, use ordinary links for ancestors, identify the current page with `aria-current`, and share their labels and paths with structured data.
+
+Comparison and example tables retain semantic captions and headers. Their own bounded containers scroll horizontally at narrow widths without widening the document. Pattern cycles use compact labelled positions, never color alone. Generator calls to action remain prominent but subordinate to the explanation. The simple header navigation wraps at narrow widths, preserves 44px targets and visible focus, works from nested routes, and stays hidden in print.
+
 ## Advertising rules
 
 Advertising is not part of the current product. If introduced later, it must not appear inside the generator workflow, between a control and its result, or in a way that resembles a product action. Reserve ad dimensions to prevent layout shift, keep ads out of print, cap density on small screens, and prioritize Core Web Vitals and task completion over revenue.

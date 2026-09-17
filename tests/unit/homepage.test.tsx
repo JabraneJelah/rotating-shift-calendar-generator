@@ -19,5 +19,11 @@ describe("homepage", () => {
     expect(
       screen.getByText(/your schedule is not saved remotely/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /compare all shift schedules/i }),
+    ).toHaveAttribute("href", "/shift-schedules");
+    expect(
+      screen.getByRole("link", { name: /about the methodology/i }),
+    ).toHaveAttribute("href", "/about");
   });
 });

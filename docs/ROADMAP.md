@@ -48,12 +48,14 @@ Exit criteria were met: preset and custom workflows use the Phase 2A API, URL re
 - Shared semantic calendar/legend presentation and mobile-to-desktop yearly layout
 - Unit, component, browser, print-media, timezone, and accessibility-oriented coverage
 
-## Phase 4 — content and discovery
+## Phase 4 — content and discovery (complete)
 
-- Verified pattern directory and a small set of substantive pattern pages
-- Guides and calculators chosen from demonstrated user needs
-- Internal linking, sitemap expansion, and structured data where eligible
-- Field performance and search measurement after privacy review
+- Server-rendered comparison hub plus substantive 4-on/4-off and fixed-shift 2-2-3 guides
+- Engine-derived cycles, counts, and complete dated examples backed by content-integrity tests
+- About methodology, privacy, export, accuracy, and limitation documentation
+- Crawlable internal links, unique metadata/canonicals, exact sitemap expansion, and visible BreadcrumbList markup
+
+Field performance and search measurement remain later work subject to privacy review; they were not introduced in Phase 4.
 
 ## Later evaluation
 

@@ -2,7 +2,7 @@
 
 Shift Calendar is a fast, accessible, mobile-first rotating-shift calendar generator. It turns approved fixed-shift patterns or an editable Day/Night/Off cycle into clear monthly and yearly calendars without an account or backend.
 
-The current Phase 3B interface supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month and year navigation, restorable versioned URLs, explicit link copying, visible-month ICS downloads, and native printing of the active calendar view. Schedule calculations, sharing, file generation, and printing preparation happen locally in the browser.
+The current Phase 4 product supports `4 on / 4 off`, `2-2-3`, fixed Day or Night shifts, custom cycles, month and year navigation, restorable versioned URLs, explicit link copying, visible-month ICS downloads, and native printing of the active calendar view. A small server-rendered discovery cluster explains the two presets and the product methodology. Schedule calculations, sharing, file generation, and printing preparation happen locally in the browser.
 
 The year selector is intentionally transient: it does not change the V1 shared URL or broaden ICS export. Copy and download continue to describe the preserved visible month. Print output hides page chrome and controls; monthly output requests portrait and yearly output requests landscape with a break after six months. Final pagination, headers, margins, and background-color handling remain subject to the browser and printer dialog.
 
@@ -20,6 +20,8 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. On macOS or Linux, replace `copy` with `cp`.
+
+Public content routes are `/shift-schedules`, `/shift-schedules/4-on-4-off`, `/shift-schedules/2-2-3`, and `/about`. Their metadata, canonicals, breadcrumbs, and sitemap entries use the validated site origin.
 
 `NEXT_PUBLIC_SITE_URL` must be an absolute HTTP(S) origin with no path. The local fallback is `http://localhost:3000`; deployment must set the real HTTPS origin so canonical URLs, the sitemap, and robots metadata are correct.
 
@@ -44,7 +46,7 @@ src/components/ui/       Reusable shadcn/ui-style primitives
 src/components/layout/   Shared page chrome
 src/features/schedule/   Generator UI, presentation helpers, and pure domain modules
 src/lib/                 Generic configuration and utilities
-src/content/             Future structured editorial content
+src/content/             Typed editorial and route metadata sources
 src/styles/              Global styles and design tokens
 tests/unit/              Unit and component tests
 tests/e2e/               Playwright journeys

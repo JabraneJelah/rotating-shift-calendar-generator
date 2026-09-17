@@ -36,3 +36,9 @@ Downloads are created entirely in the browser with `text/calendar;charset=utf-8`
 ## Phase 3B local printing
 
 Printing is initiated only by an explicit user action and delegates directly to the browser's native print dialog. The application reuses escaped semantic calendar HTML and local CSS; it does not build raw HTML strings, rasterize content, contact a print/PDF service, load remote print assets, store print jobs, or transmit schedule data. Browser “Save as PDF” behavior remains local browser functionality rather than an application-generated download.
+
+## Phase 4 structured content and JSON-LD
+
+Structured data is built only from controlled typed breadcrumb definitions and the validated site origin. JSON-LD serialization escapes every `<` as `\u003c` before the string enters a script element, preventing a closing-tag sequence from becoming markup. No user input, URL query value, or remote content is interpolated into JSON-LD or rendered as raw HTML.
+
+Content and schemas do not invent personal identities, employer affiliations, organization details, reviews, ratings, or credentials. About describes product behavior and methodology without exposing irrelevant internal or personal information.

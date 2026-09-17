@@ -4,6 +4,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 
 import { ScheduleGenerator } from "@/features/schedule";
 
@@ -65,6 +66,44 @@ export default function HomePage() {
       >
         <ScheduleGenerator />
       </div>
+
+      <section className="print-hidden border-border border-t">
+        <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
+          <h2 className="text-2xl font-bold tracking-tight">
+            Explore shift patterns
+          </h2>
+          <p className="text-muted-foreground mt-2 max-w-3xl leading-7">
+            Compare the exact cycles supported by the generator, see verified
+            dated examples, and learn how to choose the correct start date.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-3">
+            <Link
+              className="text-primary font-semibold underline-offset-4 hover:underline"
+              href="/shift-schedules"
+            >
+              Compare all shift schedules
+            </Link>
+            <Link
+              className="text-primary font-semibold underline-offset-4 hover:underline"
+              href="/shift-schedules/4-on-4-off"
+            >
+              4 on / 4 off guide
+            </Link>
+            <Link
+              className="text-primary font-semibold underline-offset-4 hover:underline"
+              href="/shift-schedules/2-2-3"
+            >
+              2-2-3 guide
+            </Link>
+            <Link
+              className="text-primary font-semibold underline-offset-4 hover:underline"
+              href="/about"
+            >
+              About the methodology
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <section className="print-hidden border-border bg-muted/35 border-t">
         <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8">

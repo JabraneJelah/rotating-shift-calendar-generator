@@ -31,6 +31,12 @@ UI primitives in `src/components/ui` and shared chrome in `src/components/layout
 
 Do not create empty abstractions or barrel files in anticipation of later work.
 
+## Content routes and discovery boundary
+
+Phase 4 adds four explicit static Server Component routes: the schedule hub, two preset guides, and About. There is no dynamic pattern segment: the small reviewed route set prevents an accidental programmatic-page surface. `src/content` owns typed editorial definitions, route metadata facts, and the approved indexable path list. Schedule cycles, counts, and examples are derived from the public domain API; the domain never imports content or React.
+
+Shared content components in `src/components/content` render accessible breadcrumbs, pattern guides, and generator calls to action without adding a client boundary. `src/lib/metadata.ts` combines typed page metadata with the validated origin. `src/lib/structured-data.ts` owns absolute BreadcrumbList creation and safe JSON-LD serialization. The sitemap maps only the approved indexable path list to absolute URLs and deliberately omits user query state and invented modification dates.
+
 ## Schedule boundary
 
 The public schedule API is `src/features/schedule/domain/index.ts`. Consumers should import from that deliberate barrel rather than reaching into internal files. Its concrete modules are:
