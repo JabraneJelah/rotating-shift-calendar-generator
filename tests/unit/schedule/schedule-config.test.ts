@@ -60,6 +60,38 @@ describe("schedule configuration validation", () => {
     }
   });
 
+  it("validates a rotating preset without a working shift", () => {
+    expect(
+      validateScheduleConfig({
+        kind: "preset",
+        version: 1,
+        presetId: "2-day-2-night-4-off",
+        startDate: "2026-10-01",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        kind: "preset",
+        version: 1,
+        presetId: "2-day-2-night-4-off",
+        startDate: "2026-10-01",
+      },
+    });
+  });
+
+  it("rejects a working shift on a rotating preset", () => {
+    expectError(
+      validateScheduleConfig({
+        kind: "preset",
+        version: 1,
+        presetId: "dupont-28-day",
+        startDate: "2026-10-01",
+        workingShift: "day",
+      }),
+      "INAPPLICABLE_WORKING_SHIFT",
+    );
+  });
+
   it.each([
     [{}, "MISSING_FIELD"],
     [{ version: 2 }, "UNSUPPORTED_CONFIG_VERSION"],
@@ -154,6 +186,53 @@ describe("version-1 schedule query codec", () => {
       ok: true,
       value: customCanonical,
     });
+  });
+
+  it.each(["4-on-4-off", "2-2-3", "7-on-7-off-fixed"] as const)(
+    "round-trips fixed preset %s for Day and Night",
+    (presetId) => {
+      for (const shift of ["day", "night"] as const) {
+        const query = `v=1&kind=preset&p=${presetId}&s=2026-10-01&shift=${shift}`;
+        const parsed = parseScheduleQuery(query);
+        expect(parsed.ok).toBe(true);
+        if (parsed.ok) {
+          expect(serializeScheduleQuery(parsed.value)).toEqual({
+            ok: true,
+            value: query,
+          });
+        }
+      }
+    },
+  );
+
+  it.each([
+    "2-day-2-night-4-off",
+    "dupont-28-day",
+    "7-day-7-off-7-night-7-off",
+  ] as const)("round-trips rotating preset %s without shift", (presetId) => {
+    const query = `v=1&kind=preset&p=${presetId}&s=2026-10-01&m=2026-10&ws=sun`;
+    const parsed = parseScheduleQuery(query);
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.value.config).not.toHaveProperty("workingShift");
+      expect(serializeScheduleQuery(parsed.value)).toEqual({
+        ok: true,
+        value: query,
+      });
+    }
+  });
+
+  it("rejects missing shift for fixed and any shift for rotating presets", () => {
+    expectError(
+      parseScheduleQuery("v=1&kind=preset&p=7-on-7-off-fixed&s=2026-10-01"),
+      "MISSING_PARAMETER",
+    );
+    expectError(
+      parseScheduleQuery(
+        "v=1&kind=preset&p=dupont-28-day&s=2026-10-01&shift=night",
+      ),
+      "INAPPLICABLE_WORKING_SHIFT",
+    );
   });
 
   it("round-trips an optional view month as presentation state", () => {

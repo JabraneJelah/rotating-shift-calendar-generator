@@ -99,7 +99,7 @@ export function YearlyCalendar({
           </dd>
           <dd className="text-muted-foreground mt-1 text-xs">
             Starts {config.startDate}
-            {config.kind === "preset"
+            {config.kind === "preset" && "workingShift" in config
               ? ` · ${config.workingShift === "day" ? "Day shift" : "Night shift"}`
               : ""}
           </dd>

@@ -39,6 +39,79 @@ test("generates and navigates a fixed-shift monthly schedule", async ({
   await expect(page).toHaveURL(/m=2026-11$/);
 });
 
+for (const preset of [
+  {
+    id: "7-on-7-off-fixed",
+    name: "7 On / 7 Off — Fixed Shift",
+    url: /p=7-on-7-off-fixed.*shift=night/,
+    firstShift: /night shift/i,
+  },
+  {
+    id: "2-day-2-night-4-off",
+    name: "2 Day / 2 Night / 4 Off",
+    url: /p=2-day-2-night-4-off&s=2026-10-01&m=2026-10$/,
+    firstShift: /day shift/i,
+  },
+  {
+    id: "dupont-28-day",
+    name: "DuPont 28-Day Rotation",
+    url: /p=dupont-28-day&s=2026-10-01&m=2026-10$/,
+    firstShift: /night shift/i,
+  },
+  {
+    id: "7-day-7-off-7-night-7-off",
+    name: "7 Day / 7 Off / 7 Night / 7 Off",
+    url: /p=7-day-7-off-7-night-7-off&s=2026-10-01&m=2026-10$/,
+    firstShift: /day shift/i,
+  },
+] as const) {
+  test(`generates the ${preset.name} preset`, async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Shift pattern").selectOption(preset.id);
+    await expect(
+      page.getByRole("heading", { level: 3, name: preset.name }),
+    ).toBeVisible();
+
+    if (preset.id === "7-on-7-off-fixed") {
+      await page.getByRole("radio", { name: "Night shift" }).check();
+    } else {
+      await expect(page.getByRole("radio", { name: "Day shift" })).toHaveCount(
+        0,
+      );
+    }
+
+    await startDate(page).fill("2026-10-01");
+    await page.getByRole("button", { name: /generate schedule/i }).click();
+
+    await expect(
+      page.getByRole("cell", {
+        name: new RegExp(
+          `thursday, october 1, 2026 — ${preset.firstShift.source}`,
+          "i",
+        ),
+      }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(preset.url);
+    if (preset.id !== "7-on-7-off-fixed") {
+      expect(page.url()).not.toContain("shift=");
+    }
+  });
+}
+
+test("restores a legacy fixed 2-2-3 schedule link", async ({ page }) => {
+  await page.goto(
+    "/?v=1&kind=preset&p=2-2-3&s=2026-10-01&shift=night&m=2026-10",
+  );
+
+  await expect(page.getByLabel("Shift pattern")).toHaveValue("2-2-3");
+  await expect(page.getByRole("radio", { name: "Night shift" })).toBeChecked();
+  await expect(
+    page.getByRole("cell", {
+      name: /thursday, october 1, 2026 — night shift/i,
+    }),
+  ).toBeVisible();
+});
+
 test("builds a custom cycle and restores it after reload", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("radio", { name: /^custom cycle/i }).check();
@@ -165,6 +238,73 @@ test("copies a canonical navigated schedule link and restores it", async ({
   await expect(
     page.getByRole("table", { name: /november 2026 work schedule/i }),
   ).toBeVisible();
+});
+
+test("copies and reloads a canonical rotating-preset link without a shift parameter", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value: string) => {
+          (globalThis as { __copiedScheduleUrl?: string }).__copiedScheduleUrl =
+            value;
+        },
+      },
+    });
+  });
+  await page.goto("/");
+  await page.getByLabel("Shift pattern").selectOption("dupont-28-day");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByRole("button", { name: /copy schedule link/i }).click();
+
+  const copiedUrl = await page.evaluate(
+    () =>
+      (globalThis as { __copiedScheduleUrl?: string }).__copiedScheduleUrl ??
+      "",
+  );
+  expect(copiedUrl).toMatch(
+    /\?v=1&kind=preset&p=dupont-28-day&s=2026-10-01&m=2026-10$/,
+  );
+  expect(copiedUrl).not.toContain("shift=");
+
+  await page.reload();
+  await expect(page.getByLabel("Shift pattern")).toHaveValue("dupont-28-day");
+  await expect(
+    page.getByRole("cell", {
+      name: /thursday, october 1, 2026 — night shift/i,
+    }),
+  ).toBeVisible();
+});
+
+test("restores rotating and fixed presets through browser history", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Shift pattern").selectOption("2-day-2-night-4-off");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  await page.getByLabel("Shift pattern").selectOption("7-on-7-off-fixed");
+  await page.getByRole("radio", { name: "Night shift" }).check();
+  await startDate(page).fill("2026-12-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  await page.goBack();
+  await expect(page.getByLabel("Shift pattern")).toHaveValue(
+    "2-day-2-night-4-off",
+  );
+  await expect(startDate(page)).toHaveValue("2026-10-01");
+  await expect(page).not.toHaveURL(/shift=/);
+
+  await page.goForward();
+  await expect(page.getByLabel("Shift pattern")).toHaveValue(
+    "7-on-7-off-fixed",
+  );
+  await expect(page.getByRole("radio", { name: "Night shift" })).toBeChecked();
+  await expect(startDate(page)).toHaveValue("2026-12-01");
 });
 
 test("offers a canonical manual-copy fallback when clipboard access fails", async ({
@@ -433,6 +573,18 @@ for (const width of [320, 390, 768, 1024, 1440]) {
       });
     }
     await page.goto("/");
+    if (width === 320) {
+      const presetSelect = page.getByLabel("Shift pattern");
+      await presetSelect.focus();
+      await page.keyboard.press("End");
+      await expect(presetSelect).toHaveValue("7-day-7-off-7-night-7-off");
+      await expect(
+        page.getByRole("heading", {
+          level: 3,
+          name: "7 Day / 7 Off / 7 Night / 7 Off",
+        }),
+      ).toBeVisible();
+    }
     await startDate(page).fill("2026-10-01");
     await page.getByRole("button", { name: /generate schedule/i }).click();
     await expect(

@@ -1,5 +1,6 @@
 import { parseISODate, parseISOYearMonth } from "./date-only";
 import {
+  getPresetDefinition,
   isPresetId,
   isWorkingShiftKind,
   MAX_CUSTOM_CYCLE_LENGTH,
@@ -145,13 +146,36 @@ export function validateScheduleConfig(
       );
     }
 
-    if (!hasOwn(value, "workingShift")) {
-      return missingField("workingShift");
+    const definition = getPresetDefinition(value.presetId);
+
+    if (definition.type === "fixed") {
+      if (!hasOwn(value, "workingShift")) {
+        return missingField("workingShift");
+      }
+
+      if (!isWorkingShiftKind(value.workingShift)) {
+        return domainFailure(
+          domainError("INVALID_WORKING_SHIFT", {
+            path: "workingShift",
+            value: errorValue(value.workingShift),
+          }),
+        );
+      }
+
+      return domainSuccess(
+        Object.freeze({
+          kind: "preset",
+          version: 1,
+          presetId: definition.id,
+          startDate: startDateResult.value,
+          workingShift: value.workingShift,
+        }),
+      );
     }
 
-    if (!isWorkingShiftKind(value.workingShift)) {
+    if (hasOwn(value, "workingShift")) {
       return domainFailure(
-        domainError("INVALID_WORKING_SHIFT", {
+        domainError("INAPPLICABLE_WORKING_SHIFT", {
           path: "workingShift",
           value: errorValue(value.workingShift),
         }),
@@ -162,9 +186,8 @@ export function validateScheduleConfig(
       Object.freeze({
         kind: "preset",
         version: 1,
-        presetId: value.presetId,
+        presetId: definition.id,
         startDate: startDateResult.value,
-        workingShift: value.workingShift,
       }),
     );
   }
@@ -389,17 +412,42 @@ export function parseScheduleQuery(
       );
     }
 
-    const workingShiftResult = requiredParameter(parameters, "shift");
+    const definition = getPresetDefinition(presetResult.value);
 
-    if (!workingShiftResult.ok) {
-      return workingShiftResult;
+    if (definition.type === "fixed") {
+      const workingShiftResult = requiredParameter(parameters, "shift");
+
+      if (!workingShiftResult.ok) {
+        return workingShiftResult;
+      }
+
+      if (!isWorkingShiftKind(workingShiftResult.value)) {
+        return domainFailure(
+          domainError("INVALID_WORKING_SHIFT", {
+            path: "shift",
+            value: workingShiftResult.value,
+          }),
+        );
+      }
+
+      const config = Object.freeze({
+        kind: "preset" as const,
+        version: 1 as const,
+        presetId: definition.id,
+        startDate: startDateResult.value,
+        workingShift: workingShiftResult.value,
+      });
+
+      return domainSuccess(
+        shareState(config, viewMonthResult.value, weekStartResult.value),
+      );
     }
 
-    if (!isWorkingShiftKind(workingShiftResult.value)) {
+    if (parameters.has("shift")) {
       return domainFailure(
-        domainError("INVALID_WORKING_SHIFT", {
+        domainError("INAPPLICABLE_WORKING_SHIFT", {
           path: "shift",
-          value: workingShiftResult.value,
+          value: parameters.get("shift"),
         }),
       );
     }
@@ -407,9 +455,8 @@ export function parseScheduleQuery(
     const config = Object.freeze({
       kind: "preset" as const,
       version: 1 as const,
-      presetId: presetResult.value,
+      presetId: definition.id,
       startDate: startDateResult.value,
-      workingShift: workingShiftResult.value,
     });
 
     return domainSuccess(
@@ -512,11 +559,11 @@ export function serializeScheduleQuery(value: unknown): DomainResult<string> {
   const parts = [`v=1`, `kind=${config.kind}`];
 
   if (config.kind === "preset") {
-    parts.push(
-      `p=${config.presetId}`,
-      `s=${config.startDate}`,
-      `shift=${config.workingShift}`,
-    );
+    parts.push(`p=${config.presetId}`, `s=${config.startDate}`);
+
+    if ("workingShift" in config) {
+      parts.push(`shift=${config.workingShift}`);
+    }
   } else {
     parts.push(
       `s=${config.startDate}`,

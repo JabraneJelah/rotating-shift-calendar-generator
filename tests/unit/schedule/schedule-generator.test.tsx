@@ -110,6 +110,55 @@ describe("generator form", () => {
     expect(screen.getByLabelText(/day shift/i)).not.toBeChecked();
   });
 
+  it("groups all six presets and shows a persistent domain-derived preview", () => {
+    render(<ScheduleGenerator />);
+
+    const select = screen.getByRole("combobox", { name: "Shift pattern" });
+    expect(select.querySelectorAll("option")).toHaveLength(6);
+    expect(
+      Array.from(select.querySelectorAll("optgroup"), (group) => group.label),
+    ).toEqual(["Fixed Day or Night", "Rotating Day and Night"]);
+    expect(
+      screen.getByRole("region", { name: "4 On / 4 Off" }),
+    ).toHaveTextContent(/8-day cycle/i);
+    expect(screen.getByText(/D = Day · N = Night · O = Off/i)).toBeVisible();
+  });
+
+  it("hides working shift for rotating presets and restores the fixed choice", () => {
+    render(<ScheduleGenerator />);
+    const select = screen.getByRole("combobox", { name: "Shift pattern" });
+
+    fireEvent.click(screen.getByLabelText(/night shift/i));
+    fireEvent.change(select, { target: { value: "dupont-28-day" } });
+
+    expect(screen.queryByLabelText(/day shift/i)).not.toBeInTheDocument();
+    const preview = screen.getByRole("region", {
+      name: "DuPont 28-Day Rotation",
+    });
+    expect(preview).toHaveTextContent(/28-day cycle/i);
+    expect(preview).toHaveTextContent(/position 28: Off/i);
+
+    fireEvent.change(select, { target: { value: "7-on-7-off-fixed" } });
+    expect(screen.getByLabelText(/night shift/i)).toBeChecked();
+  });
+
+  it("switches among preset and custom modes without changing the start date", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    fireEvent.change(screen.getByRole("combobox", { name: "Shift pattern" }), {
+      target: { value: "2-day-2-night-4-off" },
+    });
+    fireEvent.click(screen.getByLabelText(/custom cycle/i));
+    fireEvent.click(screen.getByLabelText(/preset schedule/i));
+
+    expect(screen.getByLabelText(/pattern start date/i)).toHaveValue(
+      "2026-10-01",
+    );
+    expect(screen.getByRole("combobox", { name: "Shift pattern" })).toHaveValue(
+      "2-day-2-night-4-off",
+    );
+  });
+
   it("shows a connected start-date error and focuses the summary", async () => {
     render(<ScheduleGenerator />);
 
@@ -201,6 +250,73 @@ describe("monthly generation", () => {
     expect(within(table).getAllByText("Off").length).toBeGreaterThan(0);
     expect(window.location.search).toContain("kind=custom");
     expect(window.location.search).toContain("cycle=d,n,o,o");
+  });
+
+  it.each([
+    ["2-day-2-night-4-off", "day shift", "night shift"],
+    ["dupont-28-day", "night shift", "off"],
+    ["7-day-7-off-7-night-7-off", "day shift", "night shift"],
+  ] as const)(
+    "generates rotating preset %s without a shift parameter",
+    async (presetId, firstLabel, laterLabel) => {
+      render(<ScheduleGenerator />);
+      fireEvent.change(
+        screen.getByRole("combobox", { name: "Shift pattern" }),
+        { target: { value: presetId } },
+      );
+      setStartDate("2026-10-01");
+      generate();
+
+      await screen.findByRole("table", { name: /october 2026/i });
+      expect(window.location.search).toContain(`p=${presetId}`);
+      expect(window.location.search).not.toContain("shift=");
+      expect(
+        screen.getByRole("cell", {
+          name: new RegExp(`october 1, 2026 — ${firstLabel}`, "i"),
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getAllByRole("cell", { name: new RegExp(laterLabel, "i") })
+          .length,
+      ).toBeGreaterThan(0);
+    },
+  );
+
+  it("generates fixed 7-on/7-off Night with a shift parameter", async () => {
+    render(<ScheduleGenerator />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Shift pattern" }), {
+      target: { value: "7-on-7-off-fixed" },
+    });
+    fireEvent.click(screen.getByLabelText(/night shift/i));
+    setStartDate("2026-10-01");
+    generate();
+
+    expect(
+      await screen.findByRole("cell", {
+        name: /october 1, 2026 — night shift/i,
+      }),
+    ).toBeInTheDocument();
+    expect(window.location.search).toContain(
+      "p=7-on-7-off-fixed&s=2026-10-01&shift=night",
+    );
+  });
+
+  it("restores a rotating URL and keeps it canonical without shift", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/?s=2026-10-01&p=2-day-2-night-4-off&kind=preset&v=1",
+    );
+    render(<ScheduleGenerator />);
+
+    await screen.findByRole("table", { name: /october 2026/i });
+    expect(screen.getByRole("combobox", { name: "Shift pattern" })).toHaveValue(
+      "2-day-2-night-4-off",
+    );
+    expect(screen.queryByLabelText(/working shift/i)).not.toBeInTheDocument();
+    expect(window.location.search).toBe(
+      "?v=1&kind=preset&p=2-day-2-night-4-off&s=2026-10-01&m=2026-10",
+    );
   });
 
   it("navigates across a year boundary and replaces the view month", async () => {
@@ -611,7 +727,7 @@ describe("schedule sharing and export actions", () => {
 
 describe("domain error presentation", () => {
   it("maps every current error code to user-facing copy", () => {
-    expect(Object.keys(SCHEDULE_ERROR_MESSAGES)).toHaveLength(22);
+    expect(Object.keys(SCHEDULE_ERROR_MESSAGES)).toHaveLength(23);
     expect(getScheduleErrorMessage({ code: "INVALID_DATE_FORMAT" })).toBe(
       "Enter a valid date.",
     );

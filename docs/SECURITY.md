@@ -35,6 +35,8 @@ Downloads are created entirely in the browser with `text/calendar;charset=utf-8`
 
 Phase 5A extends the same boundary to complete-year files. The serializer accepts only an exact ordered, gap-free January 1–December 31 occurrence set, caps output naturally at 366 events, and fails atomically when the final event's exclusive end would exceed supported date arithmetic (year 9999). The week-start preference, next-schedule insight, and weekend totals are derived locally from validated date-only values. No account, storage, provider API, worker identity, or new telemetry is introduced.
 
+Phase 5B2 adds only frozen in-bundle preset definitions and local form/query handling. Fixed-versus-rotating validation rejects inapplicable hidden shift data before calculation or export. Preset selection, previews, schedule expansion, links, ICS files, and printing remain entirely in the browser; no schedule configuration or production data is transmitted or persisted.
+
 ## Phase 3B local printing
 
 Printing is initiated only by an explicit user action and delegates directly to the browser's native print dialog. The application reuses escaped semantic calendar HTML and local CSS; it does not build raw HTML strings, rasterize content, contact a print/PDF service, load remote print assets, store print jobs, or transmit schedule data. Browser “Save as PDF” behavior remains local browser functionality rather than an application-generated download.

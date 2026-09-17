@@ -86,6 +86,22 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** Panama commonly names the 2-2-3 family, but employers implement it differently and a duplicate identifier would imply unsupported equivalence.  
 **Consequences:** Content may mention the alternative name with a qualification; configuration accepts only `2-2-3`, and any distinct rotating sequence requires a future decision.
 
+## D-035 — Verified presets use discriminated fixed and rotating definitions
+
+**Decision:** Support exactly six presets. Fixed `4-on-4-off`, fixed `2-2-3`, and fixed `7-on-7-off` require Day or Night. Concrete `2-day-2-night-4-off`, DuPont 28-day, and `7-day-7-off-7-night-7-off` own complete Day/Night/Off cycles and reject a working-shift field.
+
+**Reason:** The Phase 5B1 evidence supports these exact worker-perspective sequences. A discriminated union prevents rotating schedules from being coerced into the old fixed-only model.
+
+**Consequences:** Preset definitions and metadata are immutable domain truth; React derives previews. Pitman/Panama duplicates, ambiguous 6-on/4-off, specialized 14-on/14-off, and Evening/Swing schedules are not added.
+
+## D-036 — V1 remains additive and the six-preset selector stays native
+
+**Decision:** Keep V1. Fixed preset links require `shift`; rotating preset links omit and reject it. Present six options in a grouped native select with one exact wrapping preview and no search.
+
+**Reason:** The preset ID makes the parameter rule unambiguous, preserves every old link, and six choices remain easy to scan without a custom command interface.
+
+**Consequences:** Canonical ordering and custom URLs stay unchanged. Generator support does not create SEO routes; the existing two reviewed guides and sitemap remain unchanged.
+
 ## D-015 — Version-1 share-query schema
 
 **Status:** Accepted  

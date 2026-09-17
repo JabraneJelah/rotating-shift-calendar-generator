@@ -26,6 +26,8 @@ Phase 3B's yearly view is transient presentation state. It adds no query paramet
 
 Phase 5A adds only optional presentation state to the existing codec: omission means Monday-first and `ws=sun` means Sunday-first. The parameter follows optional `m` in canonical serialization, is excluded from configuration identity, and creates no indexable route or metadata variant. Next-schedule information, weekend totals, and year downloads remain client-generated user results under the clean homepage canonical.
 
+Phase 5B2 extends V1 additively. Fixed preset URLs require `shift=day|night`; concrete rotating preset URLs omit and reject `shift`. New preset identifiers remain query configuration under the homepage canonical. No guide, sitemap entry, metadata variant, dynamic pattern route, or programmatically generated page is created. Future DuPont, 2D/2N/4O, or combined 7-on/7-off content requires separate editorial review.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

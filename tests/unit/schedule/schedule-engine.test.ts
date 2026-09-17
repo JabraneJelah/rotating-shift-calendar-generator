@@ -7,7 +7,10 @@ import {
   resolveScheduleOccurrence,
   type DomainResult,
   type ISODate,
-  type PresetScheduleConfig,
+  type FixedPresetId,
+  type FixedPresetScheduleConfig,
+  type RotatingPresetId,
+  type RotatingPresetScheduleConfig,
   type ScheduleConfig,
 } from "@/features/schedule/domain";
 
@@ -21,6 +24,18 @@ function validDate(value: string): ISODate {
   return result.value;
 }
 
+function rotatingConfig(
+  presetId: RotatingPresetId,
+  startDate = "2026-10-01",
+): RotatingPresetScheduleConfig {
+  return {
+    kind: "preset",
+    version: 1,
+    presetId,
+    startDate: validDate(startDate),
+  };
+}
+
 function expectError<T>(result: DomainResult<T>, code: string): void {
   expect(result.ok).toBe(false);
 
@@ -32,9 +47,9 @@ function expectError<T>(result: DomainResult<T>, code: string): void {
 }
 
 function presetConfig(
-  presetId: PresetScheduleConfig["presetId"] = "4-on-4-off",
-  workingShift: PresetScheduleConfig["workingShift"] = "day",
-): PresetScheduleConfig {
+  presetId: FixedPresetId = "4-on-4-off",
+  workingShift: FixedPresetScheduleConfig["workingShift"] = "day",
+): FixedPresetScheduleConfig {
   return {
     kind: "preset",
     version: 1,
@@ -100,6 +115,56 @@ describe("schedule occurrence resolution", () => {
       cycleIndex: 1,
     });
   });
+
+  it.each([
+    ["2-day-2-night-4-off", 8, "day"],
+    ["dupont-28-day", 28, "night"],
+    ["7-day-7-off-7-night-7-off", 28, "day"],
+  ] as const)(
+    "wraps concrete preset %s forward and backward",
+    (presetId, cycleLength, firstShift) => {
+      const config = rotatingConfig(presetId);
+      expect(
+        resolveScheduleOccurrence(config, validDate("2026-10-01")),
+      ).toEqual({
+        date: "2026-10-01",
+        shift: firstShift,
+        cycleIndex: 0,
+      });
+      expect(
+        resolveScheduleOccurrence(config, validDate("2026-09-30")),
+      ).toEqual({
+        date: "2026-09-30",
+        shift: "off",
+        cycleIndex: cycleLength - 1,
+      });
+      const wrapDate = cycleLength === 8 ? "2026-10-09" : "2026-10-29";
+      expect(resolveScheduleOccurrence(config, validDate(wrapDate))).toEqual({
+        date: wrapDate,
+        shift: firstShift,
+        cycleIndex: 0,
+      });
+    },
+  );
+
+  it.each([
+    ["2-day-2-night-4-off", "day"],
+    ["dupont-28-day", "night"],
+    ["7-day-7-off-7-night-7-off", "day"],
+  ] as const)(
+    "keeps %s aligned across leap-day, month, and year boundaries",
+    (presetId, secondShift) => {
+      const leapConfig = rotatingConfig(presetId, "2028-02-29");
+      expect(
+        resolveScheduleOccurrence(leapConfig, validDate("2028-03-01")),
+      ).toMatchObject({ cycleIndex: 1, shift: secondShift });
+
+      const yearConfig = rotatingConfig(presetId, "2026-12-31");
+      expect(
+        resolveScheduleOccurrence(yearConfig, validDate("2027-01-01")),
+      ).toMatchObject({ cycleIndex: 1, shift: secondShift });
+    },
+  );
 });
 
 describe("inclusive range expansion", () => {

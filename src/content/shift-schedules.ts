@@ -3,12 +3,15 @@ import {
   expandSchedule,
   parseISODate,
   resolvePresetPattern,
-  type PresetId,
   type PresetScheduleConfig,
   type ShiftKind,
 } from "@/features/schedule/domain";
 
-import type { PageSeo, ShiftScheduleGuide } from "./content-types";
+import type {
+  GuidePresetId,
+  PageSeo,
+  ShiftScheduleGuide,
+} from "./content-types";
 
 const EXAMPLE_START = "2026-01-05";
 
@@ -144,7 +147,7 @@ const guideEditorial = {
     relatedPresetId: "4-on-4-off",
   },
 } as const satisfies Record<
-  PresetId,
+  GuidePresetId,
   {
     readonly label: string;
     readonly shortLabel: string;
@@ -159,7 +162,7 @@ const guideEditorial = {
     readonly terminologyNote?: string;
     readonly faqs: readonly { question: string; answer: string }[];
     readonly accuracyNote: string;
-    readonly relatedPresetId: PresetId;
+    readonly relatedPresetId: GuidePresetId;
   }
 >;
 
@@ -174,7 +177,7 @@ function requireValue<T>(
   return result.value;
 }
 
-function buildGuide(presetId: PresetId): ShiftScheduleGuide {
+function buildGuide(presetId: GuidePresetId): ShiftScheduleGuide {
   const editorial = guideEditorial[presetId];
   const pattern = requireValue(
     resolvePresetPattern(presetId, "day"),

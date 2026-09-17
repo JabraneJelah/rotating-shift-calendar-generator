@@ -8,19 +8,66 @@ export type WeekStart = "monday" | "sunday";
 export type ISODate = string & { readonly [isoDateBrand]: true };
 export type ISOYearMonth = string & { readonly [isoYearMonthBrand]: true };
 
-export type PresetId = "4-on-4-off" | "2-2-3";
+export type FixedPresetId = "4-on-4-off" | "2-2-3" | "7-on-7-off-fixed";
+export type RotatingPresetId =
+  "2-day-2-night-4-off" | "dupont-28-day" | "7-day-7-off-7-night-7-off";
+export type PresetId = FixedPresetId | RotatingPresetId;
+export type FixedPresetCyclePosition = "work" | "off";
+
+export type PresetCounts = {
+  readonly day: number;
+  readonly night: number;
+  readonly off: number;
+  readonly working: number;
+};
+
+type PresetDefinitionBase = {
+  readonly id: PresetId;
+  readonly name: string;
+  readonly description: string;
+  readonly anchor: string;
+  readonly cycleLength: number;
+  readonly counts: PresetCounts;
+  readonly variationNote?: string;
+};
+
+export type FixedPresetDefinition = PresetDefinitionBase & {
+  readonly type: "fixed";
+  readonly id: FixedPresetId;
+  readonly cycle: readonly FixedPresetCyclePosition[];
+  readonly requiresWorkingShift: true;
+};
+
+export type RotatingPresetDefinition = PresetDefinitionBase & {
+  readonly type: "rotating";
+  readonly id: RotatingPresetId;
+  readonly cycle: readonly ShiftKind[];
+  readonly requiresWorkingShift: false;
+};
+
+export type PresetDefinition = FixedPresetDefinition | RotatingPresetDefinition;
 
 export type SchedulePattern = {
   readonly cycle: readonly ShiftKind[];
 };
 
-export type PresetScheduleConfig = {
+export type FixedPresetScheduleConfig = {
   readonly kind: "preset";
   readonly version: 1;
-  readonly presetId: PresetId;
+  readonly presetId: FixedPresetId;
   readonly startDate: ISODate;
   readonly workingShift: WorkingShiftKind;
 };
+
+export type RotatingPresetScheduleConfig = {
+  readonly kind: "preset";
+  readonly version: 1;
+  readonly presetId: RotatingPresetId;
+  readonly startDate: ISODate;
+};
+
+export type PresetScheduleConfig =
+  FixedPresetScheduleConfig | RotatingPresetScheduleConfig;
 
 export type CustomScheduleConfig = {
   readonly kind: "custom";
@@ -56,6 +103,7 @@ export type DomainErrorCode =
   | "INVALID_SHIFT_KIND"
   | "UNKNOWN_PRESET"
   | "INVALID_WORKING_SHIFT"
+  | "INAPPLICABLE_WORKING_SHIFT"
   | "INVALID_RANGE"
   | "RANGE_TOO_LARGE"
   | "UNSUPPORTED_CONFIG_VERSION"

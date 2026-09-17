@@ -4,7 +4,7 @@ export const pageSeo = {
   schedules: {
     title: "Rotating Shift Schedule Patterns",
     description:
-      "Compare 4 on 4 off and 2-2-3 rotating shift patterns, understand each cycle, and create a calendar for your own start date.",
+      "Explore reviewed 4 on 4 off and fixed 2-2-3 guides, then create a calendar with six verified fixed and rotating presets.",
     path: "/shift-schedules",
   },
   about: {

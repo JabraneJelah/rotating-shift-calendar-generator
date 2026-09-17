@@ -43,7 +43,7 @@ The public schedule API is `src/features/schedule/domain/index.ts`. Consumers sh
 
 - `schedule-types.ts`: branded calendar values, configuration unions, occurrences, and typed results
 - `date-only.ts`: strict parsing and integer Gregorian calendar arithmetic
-- `presets.ts`: approved fixed-shift cycles and custom-pattern validation
+- `presets.ts`: immutable discriminated fixed/rotating definitions, public preset metadata, pattern resolution, and custom-pattern validation
 - `schedule-engine.ts`: positive-modulo occurrence resolution and bounded inclusive expansion
 - `schedule-config.ts`: untrusted configuration validation and the V1 share-query codec
 
@@ -64,6 +64,8 @@ The pure serializer and its escaping/types modules do not import React, Next.js,
 Server Components remain the default. `src/features/schedule/components/schedule-generator.tsx` is the single explicit Client Component boundary; its form, calendar, and presentation imports form the smallest practical client graph. `page.tsx`, layout, header, metadata, and introductory content remain server-rendered.
 
 The generator separates editable form values from validated generated state. Submission passes untrusted values through `validateScheduleConfig`; only validated `ScheduleConfig` reaches the presentation helpers and `expandSchedule`. Presentation helpers derive Monday- or Sunday-first rows, English labels, totals, worked-weekend-date counts, and adjacent periods without duplicating occurrence rules. A pure insight helper resolves tomorrow and searches at most one validated cycle for the next non-Off occurrence.
+
+Fixed preset configurations carry `workingShift`; rotating preset configurations cannot. The UI reads exhaustive metadata through the public domain barrel and derives previews from resolved domain patterns. React never owns or constructs preset sequences. The V1 codec uses the preset definition to require or reject `shift` while preserving all legacy fixed links.
 
 Initial and `popstate` queries are parsed only through `parseScheduleQuery`. Valid state is immediately reserialized through `serializeScheduleQuery`: manual generation uses `pushState`, while month navigation, week-start changes, and canonicalization use `replaceState`. Omission restores Monday; `ws=sun` restores Sunday without changing configuration identity. Empty and invalid queries leave a usable form. The server renders stable empty defaults, keeps the form disabled only until URL restoration completes after hydration, and does not make the page dynamic.
 

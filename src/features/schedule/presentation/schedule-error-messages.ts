@@ -13,6 +13,8 @@ export const SCHEDULE_ERROR_MESSAGES = {
   INVALID_SHIFT_KIND: "Choose Day, Night, or Off for every cycle day.",
   UNKNOWN_PRESET: "This schedule preset is not supported.",
   INVALID_WORKING_SHIFT: "Choose either a day shift or a night shift.",
+  INAPPLICABLE_WORKING_SHIFT:
+    "This rotating preset already defines its Day and Night shifts.",
   INVALID_RANGE: "The calendar date range is invalid.",
   RANGE_TOO_LARGE: "The requested calendar range is too large.",
   UNSUPPORTED_CONFIG_VERSION:

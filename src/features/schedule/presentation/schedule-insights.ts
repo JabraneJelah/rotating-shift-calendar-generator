@@ -20,7 +20,7 @@ function getCycleLength(config: ScheduleConfig): number {
 
   const patternResult = resolvePresetPattern(
     config.presetId,
-    config.workingShift,
+    "workingShift" in config ? config.workingShift : undefined,
   );
 
   if (!patternResult.ok) {

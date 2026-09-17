@@ -4,13 +4,20 @@ import { CalendarPlus2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type {
+  FixedPresetDefinition,
   PresetId,
+  RotatingPresetDefinition,
   ShiftKind,
   WorkingShiftKind,
+} from "@/features/schedule/domain";
+import {
+  PRESET_DEFINITIONS,
+  getPresetDefinition,
 } from "@/features/schedule/domain";
 import type { ScheduleFieldErrors } from "@/features/schedule/presentation/schedule-error-messages";
 
 import { CustomCycleEditor } from "./custom-cycle-editor";
+import { PresetCyclePreview } from "./preset-cycle-preview";
 
 export type ScheduleMode = "preset" | "custom";
 
@@ -48,6 +55,16 @@ export function ScheduleForm({
   onCustomCycleChange,
   onSubmit,
 }: ScheduleFormProps) {
+  const selectedPreset = getPresetDefinition(presetId);
+  const fixedPresets = PRESET_DEFINITIONS.filter(
+    (definition): definition is FixedPresetDefinition =>
+      definition.type === "fixed",
+  );
+  const rotatingPresets = PRESET_DEFINITIONS.filter(
+    (definition): definition is RotatingPresetDefinition =>
+      definition.type === "rotating",
+  );
+
   return (
     <form className="space-y-6" noValidate onSubmit={onSubmit}>
       <fieldset>
@@ -58,7 +75,7 @@ export function ScheduleForm({
               [
                 "preset",
                 "Preset schedule",
-                "Start with a proven fixed-shift pattern.",
+                "Start with a verified fixed or rotating pattern.",
               ],
               [
                 "custom",
@@ -96,13 +113,14 @@ export function ScheduleForm({
       </fieldset>
 
       {mode === "preset" ? (
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="space-y-5">
           <div>
             <label className="text-sm font-semibold" htmlFor="schedule-preset">
               Shift pattern
             </label>
             <select
               className={`${controlClassName} mt-2`}
+              aria-describedby="preset-preview-description"
               disabled={disabled}
               id="schedule-preset"
               onChange={(event) =>
@@ -110,51 +128,62 @@ export function ScheduleForm({
               }
               value={presetId}
             >
-              <option value="4-on-4-off">4 on / 4 off</option>
-              <option value="2-2-3">2-2-3 fixed shift</option>
+              <optgroup label="Fixed Day or Night">
+                {fixedPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Rotating Day and Night">
+                {rotatingPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
+              </optgroup>
             </select>
-            <p className="text-muted-foreground mt-2 text-xs leading-5">
-              {presetId === "4-on-4-off"
-                ? "Four working days followed by four days off."
-                : "A fixed 14-day pattern with seven working days and seven days off."}
-            </p>
           </div>
 
-          <fieldset>
-            <legend className="text-sm font-semibold">Working shift</legend>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(
-                [
-                  ["day", "Day shift"],
-                  ["night", "Night shift"],
-                ] as const
-              ).map(([value, label]) => (
-                <label
-                  className={`focus-within:ring-ring/45 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium focus-within:ring-3 ${
-                    workingShift === value
-                      ? "border-primary bg-primary/8"
-                      : "border-border bg-background"
-                  }`}
-                  key={value}
-                >
-                  <input
-                    checked={workingShift === value}
-                    className="size-4 accent-[var(--primary)]"
-                    disabled={disabled}
-                    name="working-shift"
-                    onChange={() => onWorkingShiftChange(value)}
-                    type="radio"
-                    value={value}
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-            <p className="text-muted-foreground mt-2 text-xs leading-5">
-              The preset stays on the selected shift; it does not rotate
-              automatically.
-            </p>
-          </fieldset>
+          {selectedPreset.type === "fixed" ? (
+            <fieldset>
+              <legend className="text-sm font-semibold">Working shift</legend>
+              <div className="mt-2 grid max-w-md grid-cols-2 gap-2">
+                {(
+                  [
+                    ["day", "Day shift"],
+                    ["night", "Night shift"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label
+                    className={`focus-within:ring-ring/45 flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium focus-within:ring-3 ${
+                      workingShift === value
+                        ? "border-primary bg-primary/8"
+                        : "border-border bg-background"
+                    }`}
+                    key={value}
+                  >
+                    <input
+                      checked={workingShift === value}
+                      className="size-4 accent-[var(--primary)]"
+                      disabled={disabled}
+                      name="working-shift"
+                      onChange={() => onWorkingShiftChange(value)}
+                      type="radio"
+                      value={value}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <p className="text-muted-foreground mt-2 text-xs leading-5">
+                The preset stays on the selected shift; it does not rotate
+                automatically.
+              </p>
+            </fieldset>
+          ) : null}
+
+          <PresetCyclePreview presetId={presetId} workingShift={workingShift} />
         </div>
       ) : (
         <CustomCycleEditor

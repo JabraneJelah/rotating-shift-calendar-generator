@@ -65,6 +65,21 @@ Field performance and search measurement remain later work subject to privacy re
 - Explicit full-year ICS export with complete-range validation and 365/366 events
 - Unit, component, timezone, browser, responsive, print, and boundary coverage without new dependencies or routes
 
+## Phase 5B — verified preset library
+
+### Phase 5B1 — research and specification (complete)
+
+Eight named families were reviewed against authoritative sources, current domain fit, duplication risk, user value, and naming ambiguity. Four exact additions were approved; Evening/Swing patterns and ambiguous or specialized candidates were deferred.
+
+### Phase 5B2 — implementation (complete)
+
+- Six total presets in immutable discriminated fixed/rotating definitions
+- Backward-compatible V1 fixed URLs and shift-free rotating URLs
+- Grouped native selector with complete domain-derived cycle preview
+- No Evening/Swing value, selector search, dependency, guide route, or sitemap change
+
+Exit criteria were met: formatting, lint, type checking, all 199 unit/component tests, all 39 browser tests, and the production build passed. Legacy fixed URLs, shift-free rotating URLs, reload and history restoration, sharing, exports, print, keyboard use, and responsive layouts are covered.
+
 ## Later evaluation
 
 Only after real usage: advertising, localization, saved schedules/accounts, and server persistence. Each requires a separate product, privacy, performance, and maintenance decision.

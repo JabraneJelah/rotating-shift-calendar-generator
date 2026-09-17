@@ -4,7 +4,10 @@
 
 - **Domain unit tests:** the primary safety net for pattern expansion and date boundaries. Cover approved sequences explicitly, malformed untrusted input, positive and negative offsets, inclusive limits, Gregorian leap rules, month/year changes, query round trips, and canonical serialization.
 - **Component tests:** React Testing Library tests for accessible roles, labels, validation, view switching, state changes, print invocation, and rendered results. Test behavior rather than Tailwind class strings.
-- **End-to-end tests:** a small Playwright suite for critical journeys in a real browser. It covers preset and custom generation, keyboard activation, reload and history restoration, invalid states, leap day, month/year navigation, active-view print behavior, print-media visibility, and phone-to-desktop overflow.
+- **End-to-end tests:** a small Playwright suite for critical journeys in a real browser. It covers every fixed and rotating preset, custom generation, keyboard activation, canonical fixed/rotating URLs, reload and history restoration, copy/export, invalid states, leap day, month/year navigation, active-view print behavior, print-media visibility, and phone-to-desktop overflow.
+
+Preset tests assert every exact full sequence, definition kind, count, anchor position, positive and negative wrap, boundary behavior, and immutability. Codec tests cover Day and Night for every fixed preset, shift-free rotating URLs, forbidden/missing shift fields, canonical order, and legacy V1 fixtures. Component tests verify native optgroups, complete preview alternatives, conditional shift controls, preserved fixed choice, unsubmitted editing, generation, history, sharing, and custom-mode regression.
+
 - **ICS unit tests:** explicit RFC 5545 envelope, CRLF, date-only boundaries, exclusive ends, summaries, ordering, deterministic identity, injected timestamps, escaping, UTF-8 folding, month/year filename and MIME behavior, exact 365/366-event scope, and typed invalid-input behavior.
 - **Build and static checks:** strict TypeScript, ESLint, Prettier, and the production build are required checks.
 

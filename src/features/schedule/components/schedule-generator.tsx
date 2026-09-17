@@ -13,6 +13,7 @@ import { CalendarRange, LockKeyhole } from "lucide-react";
 import {
   parseScheduleQuery,
   parseISODate,
+  isFixedPresetId,
   serializeScheduleQuery,
   validateScheduleConfig,
   type ISODate,
@@ -81,7 +82,7 @@ function formStateFromConfig(config: ScheduleConfig): EditableScheduleState {
     return {
       mode: "preset",
       presetId: config.presetId,
-      workingShift: config.workingShift,
+      workingShift: "workingShift" in config ? config.workingShift : "day",
       startDate: config.startDate,
       customCycle: ["day", "day", "off", "off"],
     };
@@ -310,13 +311,20 @@ export function ScheduleGenerator() {
 
     const rawConfig =
       form.mode === "preset"
-        ? {
-            kind: "preset",
-            version: 1,
-            presetId: form.presetId,
-            startDate: form.startDate,
-            workingShift: form.workingShift,
-          }
+        ? isFixedPresetId(form.presetId)
+          ? {
+              kind: "preset",
+              version: 1,
+              presetId: form.presetId,
+              startDate: form.startDate,
+              workingShift: form.workingShift,
+            }
+          : {
+              kind: "preset",
+              version: 1,
+              presetId: form.presetId,
+              startDate: form.startDate,
+            }
         : {
             kind: "custom",
             version: 1,
@@ -498,8 +506,8 @@ export function ScheduleGenerator() {
             Build your monthly shift calendar
           </h2>
           <p className="text-muted-foreground mt-2 max-w-2xl leading-7">
-            Choose a fixed-shift preset or create a custom repeating cycle. No
-            account is required.
+            Choose a verified fixed or rotating preset, or create a custom
+            repeating cycle. No account is required.
           </p>
         </div>
         <span className="bg-accent text-accent-foreground grid size-11 shrink-0 place-items-center rounded-xl">

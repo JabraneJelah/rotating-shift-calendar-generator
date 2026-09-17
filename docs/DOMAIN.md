@@ -1,6 +1,6 @@
 # Schedule domain
 
-This document defines the Phase 2A schedule contract. The engine models repeating calendar-day categories, not employment policy or exact work times.
+This document defines the schedule contract through Phase 5B2. The engine models repeating calendar-day categories, not employment policy or exact work times.
 
 ## Terms
 
@@ -36,7 +36,23 @@ Fourteen positions: `WORK, WORK, OFF, OFF, WORK, WORK, WORK, OFF, OFF, WORK, WOR
 
 This is a fixed-shift preset with seven working and seven off positions. “Panama schedule” may be described in content as a common alternative name for the 2-2-3 family, but it is not a separate preset or a guarantee that every Panama implementation matches this sequence.
 
-The engine does not invent day/night rotation. Both presets require one fixed working-shift kind. Employer-specific alternating sequences need separately reviewed presets in a future phase.
+### `7-on-7-off-fixed`
+
+Fourteen positions: seven `WORK`, then seven `OFF`. All working positions resolve to the selected Day or Night value. The start date is the first working position.
+
+### `2-day-2-night-4-off`
+
+Eight concrete positions: `day, day, night, night, off, off, off, off`. The start date is the first Day position.
+
+### `dupont-28-day`
+
+Twenty-eight concrete positions: `night, night, night, night, off, off, off, day, day, day, off, night, night, night, off, off, off, day, day, day, day, off, off, off, off, off, off, off`. The start date is the first Night in the opening four-Night block. Similar employer schedules may differ; this identifier always means this exact order.
+
+### `7-day-7-off-7-night-7-off`
+
+Twenty-eight concrete positions: seven Day, seven Off, seven Night, then seven Off. The start date is the first Day position. It is distinct from fixed `7-on-7-off-fixed`.
+
+Preset definitions are discriminated as fixed or rotating. Fixed presets contain `work | off` positions and require one working-shift kind. Rotating presets contain final `day | night | off` values and reject a separate working shift. Pitman and Panama are not separate identifiers because their fixed work/off skeleton duplicates `2-2-3` and workplace rotation rules vary. Evening and Swing are not supported shift kinds.
 
 ## Date-only contract
 
@@ -81,12 +97,20 @@ It contains no label, color, icon, localized text, shift time, pay data, or pres
 Schedule configuration is a discriminated union with numeric version `1`:
 
 ```ts
-type PresetScheduleConfig = {
+type FixedPresetScheduleConfig = {
   readonly kind: "preset";
   readonly version: 1;
-  readonly presetId: "4-on-4-off" | "2-2-3";
+  readonly presetId: "4-on-4-off" | "2-2-3" | "7-on-7-off-fixed";
   readonly startDate: ISODate;
   readonly workingShift: "day" | "night";
+};
+
+type RotatingPresetScheduleConfig = {
+  readonly kind: "preset";
+  readonly version: 1;
+  readonly presetId:
+    "2-day-2-night-4-off" | "dupont-28-day" | "7-day-7-off-7-night-7-off";
+  readonly startDate: ISODate;
 };
 
 type CustomScheduleConfig = {
@@ -101,13 +125,14 @@ Canonical query forms are:
 
 ```text
 v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day
+v=1&kind=preset&p=2-day-2-night-4-off&s=2026-10-01
 v=1&kind=custom&s=2026-10-01&cycle=d,d,n,n,o,o
 v=1&kind=preset&p=4-on-4-off&s=2026-10-01&shift=day&ws=sun
 ```
 
 Cycle tokens are `d` (day), `n` (night), and `o` (off). Optional view month `m=2026-10` and week start are presentation state and never affect calculation. Omitted week start means Monday; Sunday is encoded as `ws=sun`; explicit Monday is omitted. Canonical order is `v`, `kind`, variant fields, optional `m`, then optional `ws`. Parsing accepts any parameter order but serialization always emits canonical order.
 
-Unknown, duplicate, missing, empty, variant-inapplicable, or malformed parameters are rejected. Parsing and serialization are pure and do not read or write browser history.
+Fixed preset queries require `shift`; rotating preset queries forbid it. Unknown, duplicate, missing, empty, variant-inapplicable, or malformed parameters are rejected. Parsing and serialization are pure and do not read or write browser history.
 
 ## Error behavior
 
@@ -120,6 +145,7 @@ INVALID_DAY_OFFSET         INVALID_CYCLE
 EMPTY_CYCLE                CYCLE_TOO_LONG
 NO_WORKING_SHIFT           INVALID_SHIFT_KIND
 UNKNOWN_PRESET             INVALID_WORKING_SHIFT
+INAPPLICABLE_WORKING_SHIFT
 INVALID_RANGE              RANGE_TOO_LARGE
 UNSUPPORTED_CONFIG_VERSION INVALID_CONFIG_KIND
 INVALID_CONFIGURATION      MISSING_FIELD

@@ -39,17 +39,18 @@ export default function ShiftSchedulesPage() {
               id="compare-heading"
               className="text-2xl font-bold tracking-tight"
             >
-              Compare the supported presets
+              Compare the reviewed guides
             </h2>
             <p className="text-muted-foreground mt-3 leading-7">
-              Both presets can label every working position as fixed Day or
-              fixed Night. Neither preset automatically alternates between the
-              two. Counts refer to cycle positions, not hours or compensation.
+              The generator supports six verified presets. These two
+              individually reviewed guides cover fixed schedules whose working
+              positions can be labeled Day or Night. Counts refer to cycle
+              positions, not hours or compensation.
             </p>
             <div className="border-border mt-5 overflow-x-auto rounded-xl border">
               <table className="w-full min-w-[42rem] border-collapse text-left text-sm">
                 <caption className="sr-only">
-                  Supported shift pattern comparison
+                  Reviewed fixed shift pattern comparison
                 </caption>
                 <thead className="bg-muted/70">
                   <tr>
@@ -129,9 +130,9 @@ export default function ShiftSchedulesPage() {
             </h2>
             <p className="text-muted-foreground mt-3 leading-7">
               Shift Calendar also supports custom Day, Night, and Off sequences.
-              Use a custom pattern when neither preset exactly matches a
-              confirmed rota; do not force an employer variation into a
-              similarly named preset.
+              Use a custom pattern when no preset exactly matches a confirmed
+              rota; do not force an employer variation into a similarly named
+              preset.
             </p>
           </section>
 

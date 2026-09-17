@@ -23,7 +23,7 @@ function positiveModulo(value: number, divisor: number): number {
 
 function patternForConfig(config: ScheduleConfig): SchedulePattern {
   if (config.kind === "preset") {
-    return trustedPresetPattern(config.presetId, config.workingShift);
+    return trustedPresetPattern(config);
   }
 
   return Object.freeze({ cycle: config.cycle });

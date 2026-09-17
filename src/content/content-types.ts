@@ -1,4 +1,6 @@
-import type { PresetId, ShiftKind } from "@/features/schedule/domain";
+import type { ShiftKind } from "@/features/schedule/domain";
+
+export type GuidePresetId = "4-on-4-off" | "2-2-3";
 
 export type PageSeo = {
   readonly title: string;
@@ -29,7 +31,7 @@ export type ScheduleExampleRow = {
 };
 
 export type ShiftScheduleGuide = {
-  readonly presetId: PresetId;
+  readonly presetId: GuidePresetId;
   readonly label: string;
   readonly shortLabel: string;
   readonly seo: PageSeo;
@@ -49,5 +51,5 @@ export type ShiftScheduleGuide = {
   readonly terminologyNote?: string;
   readonly faqs: readonly FrequentlyAskedQuestion[];
   readonly accuracyNote: string;
-  readonly relatedPresetId: PresetId;
+  readonly relatedPresetId: GuidePresetId;
 };

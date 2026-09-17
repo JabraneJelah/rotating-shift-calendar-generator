@@ -38,7 +38,9 @@ Calendar cells need legible date numbers, a concise shift label, and enough sepa
 
 ## Shipped monthly workflow
 
-The Phase 2B generator starts with the `4 on / 4 off` preset, Day shift, and an intentionally empty start date. Users may select the `2-2-3` preset, switch the fixed working shift, or build a custom ordered cycle with native Day/Night/Off selects. Custom cycles retain at least one position and support up to 56.
+The generator starts with the fixed `4 On / 4 Off` preset, Day shift, and an intentionally empty start date. Presets use one visibly labelled native select with `Fixed Day or Night` and `Rotating Day and Night` optgroups. The Day/Night radio group is present only for fixed presets; switching through rotating presets retains the last fixed choice without submitting or serializing it. Six options do not justify search.
+
+Every selected preset has one persistent preview showing its name, classification, cycle length, description, exact ordered D/N/O tokens, counts, and anchor. Tokens wrap at phone widths, include a visible text legend, and have a complete ordered screen-reader alternative. Rotating previews explain that their Day/Night positions are already defined and remind users to compare the cycle with their official rota. Custom cycles retain native Day/Night/Off selects, at least one position, and the 56-position limit.
 
 Successful generation moves focus to the result heading and shows a semantic calendar table. A labelled native radio group selects Monday- or Sunday-first ordering; Monday is the backward-compatible default, and changing it updates the canonical link without adding browser history or moving focus. Every date cell includes a visible day number, icon, and Day/Night/Off text plus a full accessible date-and-shift name. The result includes schedule context, monthly counts, worked Saturday/Sunday date counts, a legend, and 44px previous/next controls. Month navigation preserves the validated pattern and updates the URL without adding a history entry for every viewed month.
 

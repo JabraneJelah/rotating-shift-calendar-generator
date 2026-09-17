@@ -1,6 +1,7 @@
 import {
   differenceInCalendarDays,
   expandSchedule,
+  getPresetDefinition,
   MAX_SUPPORTED_YEAR,
   MIN_SUPPORTED_YEAR,
   parseISODate,
@@ -302,9 +303,7 @@ export function getScheduleName(config: ScheduleConfig): string {
     return "Custom cycle";
   }
 
-  return config.presetId === "4-on-4-off"
-    ? "4 on / 4 off"
-    : "2-2-3 fixed shift";
+  return getPresetDefinition(config.presetId).name;
 }
 
 export function createMonthlyCalendarView(
