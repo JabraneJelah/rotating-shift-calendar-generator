@@ -38,6 +38,24 @@ import {
   type ShiftDefinitionRegistry,
 } from "@/features/schedule/planner";
 import {
+  createImportReview,
+  createPlannerBackup,
+  downloadPlannerBackup,
+  IndexedDBPlannerRepository,
+  parsePlannerBackup,
+  persistenceErrorMessage,
+  plannerBackupFilename,
+  PlannerPersistenceError,
+  serializePlannerBackup,
+  validateBackupFile,
+  type ImportReview,
+  type PersistedPlannerV1,
+  type PlannerContent,
+  type PlannerSummary,
+  type SaveState,
+  type StorageEventMessage,
+} from "@/features/schedule/persistence";
+import {
   createMonthlyCalendarView,
   getViewMonthFromDate,
   type MonthlyCalendarView,
@@ -60,6 +78,7 @@ import {
 
 import { MonthlyCalendar } from "./monthly-calendar";
 import { DateExceptionEditor } from "./date-exception-editor";
+import { LocalPlannerPanel } from "./local-planner-panel";
 import { ScheduleActions } from "./schedule-actions";
 import { ScheduleForm, type ScheduleMode } from "./schedule-form";
 import { ScheduleInsights } from "./schedule-insights";
@@ -164,6 +183,71 @@ function getLocalToday(): ISODate | null {
   return result.ok ? result.value : null;
 }
 
+function editableShiftDetailsFromRegistry(
+  registry: ShiftDefinitionRegistry,
+): EditableShiftDetails {
+  const day = registry.definitions.find(
+    ({ id }) => id === registry.dayDefinitionId,
+  );
+  const night = registry.definitions.find(
+    ({ id }) => id === registry.nightDefinitionId,
+  );
+  if (day === undefined || night === undefined) {
+    throw new Error("A validated registry must contain Day and Night shifts.");
+  }
+  return {
+    day: {
+      id: day.id,
+      name: day.name,
+      shortLabel: day.shortLabel,
+      category: "day",
+      color: day.color,
+      startTime: day.time?.startTime ?? "",
+      endTime: day.time?.endTime ?? "",
+      is24Hours: day.time?.is24Hours ?? false,
+      breakMinutes: String(day.time?.breakMinutes ?? 0),
+    },
+    night: {
+      id: night.id,
+      name: night.name,
+      shortLabel: night.shortLabel,
+      category: "night",
+      color: night.color,
+      startTime: night.time?.startTime ?? "",
+      endTime: night.time?.endTime ?? "",
+      is24Hours: night.time?.is24Hours ?? false,
+      breakMinutes: String(night.time?.breakMinutes ?? 0),
+    },
+  };
+}
+
+function plannerContent(
+  generated: GeneratedScheduleState,
+  weekStart: WeekStart,
+  exceptions: readonly DateException[],
+  timeZone: string,
+): PlannerContent {
+  return {
+    schedule: generated.config,
+    weekStart,
+    shiftDefinitions: generated.planner ?? DEFAULT_SHIFT_DEFINITION_REGISTRY,
+    exceptions,
+    ...(timeZone === "" ? {} : { timeZone }),
+  };
+}
+
+function contentFingerprint(
+  value: PlannerContent | PersistedPlannerV1,
+): string {
+  return JSON.stringify({
+    schedule: value.schedule,
+    weekStart: value.weekStart,
+    shiftDefinitions: value.shiftDefinitions,
+    exceptions: value.exceptions,
+    ...(value.timeZone === undefined ? {} : { timeZone: value.timeZone }),
+  });
+}
+
 export function ScheduleGenerator() {
   const [form, setForm] = useState<EditableScheduleState>(
     createDefaultFormState,
@@ -187,8 +271,29 @@ export function ScheduleGenerator() {
   const [today, setToday] = useState<ISODate | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [isReady, setIsReady] = useState(false);
+  const [plannerTimeZone, setPlannerTimeZone] = useState("");
+  const [activePlanner, setActivePlanner] = useState<PersistedPlannerV1 | null>(
+    null,
+  );
+  const [savedPlanners, setSavedPlanners] = useState<readonly PlannerSummary[]>(
+    [],
+  );
+  const [saveState, setSaveState] = useState<SaveState>("unsaved");
+  const [storageMessage, setStorageMessage] = useState<string | null>(null);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const repositoryRef = useRef<IndexedDBPlannerRepository | null>(null);
+  const activePlannerRef = useRef<PersistedPlannerV1 | null>(null);
+  const autosaveTimerRef = useRef<number | null>(null);
+  const saveStateRef = useRef<SaveState>("unsaved");
+
+  useEffect(() => {
+    activePlannerRef.current = activePlanner;
+  }, [activePlanner]);
+
+  useEffect(() => {
+    saveStateRef.current = saveState;
+  }, [saveState]);
 
   const focusErrorSummary = useCallback(() => {
     window.setTimeout(() => errorSummaryRef.current?.focus(), 0);
@@ -342,6 +447,63 @@ export function ScheduleGenerator() {
     );
   }, [commitSchedule]);
 
+  const applySavedPlanner = useCallback(
+    (planner: PersistedPlannerV1, message: string): boolean => {
+      const viewMonth = getViewMonthFromDate(planner.schedule.startDate);
+      const personalRegistry = isDefaultShiftDefinitionRegistry(
+        planner.shiftDefinitions,
+      )
+        ? null
+        : planner.shiftDefinitions;
+      const committed = commitSchedule(
+        planner.schedule,
+        viewMonth,
+        planner.weekStart,
+        personalRegistry,
+        "none",
+        message,
+        false,
+      );
+      if (!committed) return false;
+      setForm(formStateFromConfig(planner.schedule));
+      setShiftDetails(
+        editableShiftDetailsFromRegistry(planner.shiftDefinitions),
+      );
+      setDateExceptions(planner.exceptions);
+      setPlannerTimeZone(planner.timeZone ?? "");
+      setActivePlanner(planner);
+      setSaveState("saved");
+      return true;
+    },
+    [commitSchedule],
+  );
+
+  const refreshPlannerList = useCallback(async () => {
+    const repository = repositoryRef.current;
+    if (repository === null) return;
+    setSavedPlanners(await repository.list());
+  }, []);
+
+  const handleExternalStorageChange = useCallback(
+    (message: StorageEventMessage) => {
+      void refreshPlannerList().catch(() => undefined);
+      const current = activePlannerRef.current;
+      if (current === null || current.id !== message.plannerId) return;
+      if (message.action === "deleted") {
+        setSaveState("conflict");
+        setStorageMessage(
+          "This planner's local saved copy was deleted in another tab. Your current planner remains open.",
+        );
+      } else if (message.revision > current.revision) {
+        setSaveState("conflict");
+        setStorageMessage(
+          "A newer saved version exists in another tab. Open it from the saved-planner list or duplicate your current planner.",
+        );
+      }
+    },
+    [refreshPlannerList],
+  );
+
   useEffect(() => {
     // The URL is an external source of truth. Restore it before a user can
     // interact so the delayed hydration pass cannot overwrite form edits.
@@ -349,12 +511,125 @@ export function ScheduleGenerator() {
     setToday(getLocalToday());
     restoreFromLocation();
     setIsReady(true);
-    window.addEventListener("popstate", restoreFromLocation);
+
+    let current = true;
+    const repository = new IndexedDBPlannerRepository({
+      onBlocked: () => {
+        if (current) {
+          setStorageMessage(
+            "Close other Shift Calendar tabs to finish updating local storage.",
+          );
+        }
+      },
+      onVersionChange: () => {
+        if (current) {
+          setSaveState("unavailable");
+          setStorageMessage(
+            "Local storage was updated in another tab. Reload before saving again.",
+          );
+        }
+      },
+      onConnectionClose: () => {
+        if (current) {
+          setSaveState("unavailable");
+          setStorageMessage(
+            "Local saving became unavailable. Your current planner remains open.",
+          );
+        }
+      },
+      onExternalChange: handleExternalStorageChange,
+    });
+    repositoryRef.current = repository;
+
+    async function loadCleanRoot() {
+      try {
+        await repository.initialize();
+        if (!current) return;
+        await refreshPlannerList();
+        if (window.location.search !== "") return;
+        const lastOpened = await repository.getLastOpened();
+        if (lastOpened === null || !current) return;
+        try {
+          const planner = await repository.get(lastOpened);
+          if (!current) return;
+          if (
+            applySavedPlanner(
+              planner,
+              `Saved planner ${planner.name} restored.`,
+            )
+          ) {
+            await repository.setLastOpened(planner.id);
+          }
+        } catch (error) {
+          if (
+            error instanceof PlannerPersistenceError &&
+            (error.code === "PLANNER_NOT_FOUND" ||
+              error.code === "CORRUPT_RECORD" ||
+              error.code === "UNSUPPORTED_PLANNER_VERSION" ||
+              error.code === "UNSUPPORTED_DOMAIN_VERSION")
+          ) {
+            await repository.setLastOpened(null);
+            setStorageMessage(persistenceErrorMessage(error));
+          } else {
+            throw error;
+          }
+        }
+      } catch (error) {
+        if (!current) return;
+        const mapped =
+          error instanceof PlannerPersistenceError
+            ? error
+            : new PlannerPersistenceError("STORAGE_UNAVAILABLE");
+        setSaveState("unavailable");
+        setStorageMessage(persistenceErrorMessage(mapped));
+      } finally {
+        if (current) setIsReady(true);
+      }
+    }
+
+    void loadCleanRoot();
+
+    function handlePopState() {
+      setActivePlanner(null);
+      setPlannerTimeZone("");
+      setSaveState("unsaved");
+      setStorageMessage(null);
+      restoreFromLocation();
+      if (window.location.search === "") {
+        void (async () => {
+          try {
+            const id = await repository.getLastOpened();
+            if (id === null || !current) return;
+            const planner = await repository.get(id);
+            if (current)
+              applySavedPlanner(
+                planner,
+                `Saved planner ${planner.name} restored.`,
+              );
+          } catch {
+            // Preserve the normal unsaved clean-root fallback.
+          }
+        })();
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener("popstate", restoreFromLocation);
+      current = false;
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+      }
+      window.removeEventListener("popstate", handlePopState);
+      repository.close();
+      repositoryRef.current = null;
     };
-  }, [restoreFromLocation]);
+  }, [
+    applySavedPlanner,
+    handleExternalStorageChange,
+    refreshPlannerList,
+    restoreFromLocation,
+  ]);
 
   function clearFieldError(field: keyof ScheduleFieldErrors) {
     setFieldErrors((current) => ({ ...current, [field]: undefined }));
@@ -445,7 +720,7 @@ export function ScheduleGenerator() {
       viewMonth,
       weekStart,
       appliedPlanner,
-      "push",
+      activePlanner === null ? "push" : "none",
       `Schedule generated for ${viewMonth}.`,
       true,
     );
@@ -464,7 +739,7 @@ export function ScheduleGenerator() {
       viewMonth,
       weekStart,
       generated.planner,
-      "replace",
+      activePlanner === null ? "replace" : "none",
       `Showing schedule for ${viewMonth}.`,
       false,
     );
@@ -577,11 +852,291 @@ export function ScheduleGenerator() {
     });
     setYearlyView(nextYearlyView);
     setGeneralErrors([]);
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}?${queryResult.value}`,
+    if (activePlanner === null) {
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}?${queryResult.value}`,
+      );
+    }
+  }
+
+  useEffect(() => {
+    const repository = repositoryRef.current;
+    if (
+      repository === null ||
+      activePlanner === null ||
+      generated === null ||
+      saveStateRef.current === "conflict" ||
+      saveStateRef.current === "unavailable"
+    ) {
+      return;
+    }
+    const content = plannerContent(
+      generated,
+      weekStart,
+      dateExceptions,
+      plannerTimeZone,
     );
+    if (contentFingerprint(content) === contentFingerprint(activePlanner)) {
+      return;
+    }
+
+    const captured = activePlanner;
+    // This effect owns the committed-state debounce, so it also exposes the
+    // dirty interval before the asynchronous IndexedDB write begins.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSaveState("unsaved");
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+    }
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      setSaveState("saving");
+      void repository
+        .update(captured.id, captured.revision, content)
+        .then(async (updated) => {
+          if (
+            activePlannerRef.current?.id === captured.id &&
+            activePlannerRef.current.revision === captured.revision
+          ) {
+            setActivePlanner(updated);
+            setSaveState("saved");
+            setStorageMessage(null);
+          }
+          await refreshPlannerList();
+        })
+        .catch((error: unknown) => {
+          if (activePlannerRef.current?.id !== captured.id) return;
+          const mapped =
+            error instanceof PlannerPersistenceError
+              ? error
+              : new PlannerPersistenceError("TRANSACTION_ABORTED");
+          setSaveState(
+            mapped.code === "PLANNER_REVISION_CONFLICT" ? "conflict" : "failed",
+          );
+          setStorageMessage(persistenceErrorMessage(mapped));
+        });
+    }, 750);
+
+    return () => {
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [
+    activePlanner,
+    dateExceptions,
+    generated,
+    plannerTimeZone,
+    refreshPlannerList,
+    weekStart,
+  ]);
+
+  function requireRepository(): IndexedDBPlannerRepository {
+    const repository = repositoryRef.current;
+    if (repository === null || saveStateRef.current === "unavailable") {
+      throw new PlannerPersistenceError("STORAGE_UNAVAILABLE");
+    }
+    return repository;
+  }
+
+  async function saveCurrentPlanner(name: string): Promise<void> {
+    if (generated === null) {
+      throw new PlannerPersistenceError("INVALID_PLANNER");
+    }
+    const repository = requireRepository();
+    const planner = await repository.create(
+      name,
+      plannerContent(generated, weekStart, dateExceptions, plannerTimeZone),
+    );
+    setActivePlanner(planner);
+    setSaveState("saved");
+    setStorageMessage(null);
+    window.history.replaceState(null, "", window.location.pathname);
+    await refreshPlannerList();
+  }
+
+  async function openPlanner(id: string): Promise<void> {
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    const repository = requireRepository();
+    const planner = await repository.get(id);
+    if (!applySavedPlanner(planner, `Saved planner ${planner.name} opened.`)) {
+      throw new PlannerPersistenceError("CORRUPT_RECORD");
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+    await repository.setLastOpened(planner.id);
+  }
+
+  async function renamePlanner(id: string, name: string): Promise<void> {
+    const repository = requireRepository();
+    const source =
+      activePlannerRef.current?.id === id
+        ? activePlannerRef.current
+        : await repository.get(id);
+    if (source === null) throw new PlannerPersistenceError("PLANNER_NOT_FOUND");
+    const updated = await repository.rename(id, name, source.revision);
+    if (activePlannerRef.current?.id === id) {
+      setActivePlanner(updated);
+      setSaveState("saved");
+    }
+    await refreshPlannerList();
+  }
+
+  async function duplicatePlanner(id: string, name: string): Promise<void> {
+    const repository = requireRepository();
+    await repository.duplicate(id, name);
+    await refreshPlannerList();
+  }
+
+  async function deletePlanner(id: string): Promise<void> {
+    const repository = requireRepository();
+    const source =
+      activePlannerRef.current?.id === id
+        ? activePlannerRef.current
+        : await repository.get(id);
+    if (source === null) throw new PlannerPersistenceError("PLANNER_NOT_FOUND");
+    await repository.delete(id, source.revision);
+    if (activePlannerRef.current?.id === id) {
+      setActivePlanner(null);
+      setSaveState("unsaved");
+      setStorageMessage(
+        "Local saved copy deleted; this planner remains open unsaved.",
+      );
+    }
+    await refreshPlannerList();
+  }
+
+  async function newUnsavedPlanner(): Promise<void> {
+    const repository = repositoryRef.current;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (repository !== null) {
+      try {
+        await repository.setLastOpened(null);
+      } catch {
+        // Returning to the unsaved generator must remain available.
+      }
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+    setActivePlanner(null);
+    setPlannerTimeZone("");
+    setSaveState("unsaved");
+    setStorageMessage(null);
+    restoreFromLocation();
+  }
+
+  async function exportOnePlanner(id: string): Promise<void> {
+    const repository = requireRepository();
+    const planner = await repository.get(id);
+    const zones =
+      planner.timeZone === undefined
+        ? new Set<string>()
+        : await repository.timeZoneSet();
+    const now = new Date();
+    const backup = createPlannerBackup(
+      [planner],
+      "single",
+      now.toISOString(),
+      (zone) => zones.has(zone),
+    );
+    downloadPlannerBackup(
+      serializePlannerBackup(backup),
+      plannerBackupFilename(
+        "single",
+        now.toISOString().slice(0, 10),
+        planner.name,
+      ),
+    );
+  }
+
+  async function exportAllPlanners(): Promise<void> {
+    const repository = requireRepository();
+    const summaries = await repository.list();
+    const planners = await Promise.all(
+      summaries.map(({ id }) => repository.get(id)),
+    );
+    const zones = planners.some(({ timeZone }) => timeZone !== undefined)
+      ? await repository.timeZoneSet()
+      : new Set<string>();
+    const now = new Date();
+    const backup = createPlannerBackup(
+      planners,
+      "all",
+      now.toISOString(),
+      (zone) => zones.has(zone),
+    );
+    downloadPlannerBackup(
+      serializePlannerBackup(backup),
+      plannerBackupFilename("all", now.toISOString().slice(0, 10)),
+    );
+  }
+
+  async function prepareImport(file: File): Promise<ImportReview> {
+    validateBackupFile(file);
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      throw new PlannerPersistenceError("FILE_READ_FAILED");
+    }
+    const repository = requireRepository();
+    let backup = parsePlannerBackup(text, () => true);
+    if (backup.planners.some(({ timeZone }) => timeZone !== undefined)) {
+      const zones = await repository.timeZoneSet();
+      backup = parsePlannerBackup(text, (zone) => zones.has(zone));
+    }
+    return createImportReview(
+      backup,
+      (await repository.list()).map(({ name }) => name),
+    );
+  }
+
+  async function confirmImport(review: ImportReview): Promise<number> {
+    const repository = requireRepository();
+    const imported = await repository.importAsNew(review);
+    await refreshPlannerList();
+    return imported.length;
+  }
+
+  async function retryActiveSave(): Promise<void> {
+    const repository = requireRepository();
+    const current = activePlannerRef.current;
+    if (current === null || generated === null) {
+      throw new PlannerPersistenceError("PLANNER_NOT_FOUND");
+    }
+    setSaveState("saving");
+    const updated = await repository.update(
+      current.id,
+      current.revision,
+      plannerContent(generated, weekStart, dateExceptions, plannerTimeZone),
+    );
+    setActivePlanner(updated);
+    setSaveState("saved");
+    setStorageMessage(null);
+    await refreshPlannerList();
+  }
+
+  async function reloadActivePlanner(): Promise<void> {
+    const repository = requireRepository();
+    const current = activePlannerRef.current;
+    if (current === null) {
+      throw new PlannerPersistenceError("PLANNER_NOT_FOUND");
+    }
+    const updated = await repository.get(current.id);
+    if (
+      !applySavedPlanner(updated, `Newer saved planner ${updated.name} loaded.`)
+    ) {
+      throw new PlannerPersistenceError("CORRUPT_RECORD");
+    }
+    setStorageMessage(null);
+    await repository.setLastOpened(updated.id);
   }
 
   const submissionMessages = formErrorMessages(fieldErrors, generalErrors);
@@ -726,6 +1281,26 @@ export function ScheduleGenerator() {
         />
       </div>
 
+      <LocalPlannerPanel
+        activePlanner={activePlanner}
+        canSave={generated !== null}
+        onConfirmImport={confirmImport}
+        onDelete={deletePlanner}
+        onDuplicate={duplicatePlanner}
+        onExportAll={exportAllPlanners}
+        onExportOne={exportOnePlanner}
+        onNewUnsaved={newUnsavedPlanner}
+        onOpen={openPlanner}
+        onPrepareImport={prepareImport}
+        onReloadActive={reloadActivePlanner}
+        onRename={renamePlanner}
+        onRetrySave={retryActiveSave}
+        onSave={saveCurrentPlanner}
+        planners={savedPlanners}
+        saveState={saveState}
+        storageMessage={storageMessage}
+      />
+
       <p aria-live="polite" className="sr-only">
         {statusMessage}
       </p>
@@ -772,6 +1347,8 @@ export function ScheduleGenerator() {
             hasPrivateDateChanges={dateExceptions.length > 0}
             hasPrivateShiftDetails={generated.planner !== null}
             onPrint={() => window.print()}
+            onTimeZoneConfirmed={setPlannerTimeZone}
+            timeZone={plannerTimeZone}
             view={generated.view}
             weekStart={weekStart}
             yearlyView={yearlyView}

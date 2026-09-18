@@ -44,6 +44,12 @@ Phase 5A extends the same boundary to complete-year files. The serializer accept
 
 Phase 5B2 adds only frozen in-bundle preset definitions and local form/query handling. Fixed-versus-rotating validation rejects inapplicable hidden shift data before calculation or export. Preset selection, previews, schedule expansion, links, ICS files, and printing remain entirely in the browser; no schedule configuration or production data is transmitted or persisted.
 
+## Phase 6B1 local storage and backup
+
+Saved planners use same-origin IndexedDB and are not uploaded. IndexedDB is neither encrypted secure storage nor a cloud backup: same-origin script, people using the same unlocked browser profile, sufficiently privileged extensions, and device compromise can access it; site-data clearing or browser eviction can remove it. The UI recommends treating JSON backups as private documents because they may contain names, shift times, absences, notes, and timezone details.
+
+Every IndexedDB read and import is untrusted. Decoders reject non-plain/accessor objects, unsafe prototype-related keys, unknown fields, unsupported versions, invalid domain values, duplicate identities/references, files over 5 MiB, more than 20 planners, nesting beyond 12, and aggregate strings over 1,000,000 code points. Imports are reviewed, receive new planner IDs, and commit atomically as new records; a matching ID/name never authorizes replacement. No imported value is evaluated, merged unsafely, injected as HTML, logged, uploaded, or placed in a URL. Broadcast messages contain only action, planner ID, and revision.
+
 ## Phase 3B local printing
 
 Printing is initiated only by an explicit user action and delegates directly to the browser's native print dialog. The application reuses escaped semantic calendar HTML and local CSS; it does not build raw HTML strings, rasterize content, contact a print/PDF service, load remote print assets, store print jobs, or transmit schedule data. Browser “Save as PDF” behavior remains local browser functionality rather than an application-generated download.

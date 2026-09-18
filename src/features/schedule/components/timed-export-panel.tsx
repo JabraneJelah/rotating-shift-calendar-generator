@@ -26,6 +26,8 @@ type TimedExportPanelProps = {
     | { readonly viewMonth: ISOYearMonth; readonly year?: never }
     | { readonly year: number; readonly viewMonth?: never };
   readonly onClose: () => void;
+  readonly initialTimeZone?: string;
+  readonly onTimeZoneConfirmed?: (timeZone: string) => void;
 };
 
 type PanelStatus = {
@@ -85,12 +87,14 @@ function offsetLabel(minutes: number): string {
 export function TimedExportPanel({
   config,
   dates,
+  initialTimeZone = "",
   onClose,
+  onTimeZoneConfirmed,
   scope,
 }: TimedExportPanelProps) {
   const [runtime, setRuntime] = useState<TimedExportModule | null>(null);
   const [support, setSupport] = useState<TimeZoneSupport | null>(null);
-  const [timeZone, setTimeZone] = useState("");
+  const [timeZone, setTimeZone] = useState(initialTimeZone);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<PanelStatus | null>(null);
@@ -202,6 +206,7 @@ export function TimedExportPanel({
 
     try {
       downloadICSFile(result.value);
+      onTimeZoneConfirmed?.(timeZone);
       setError(null);
       setStatus({
         kind: "success",

@@ -31,6 +31,8 @@ type ScheduleActionsProps = {
   readonly hasPrivateDateChanges?: boolean;
   readonly effectiveMonth?: readonly EffectiveScheduleDate[];
   readonly effectiveYear?: readonly EffectiveScheduleDate[];
+  readonly timeZone?: string;
+  readonly onTimeZoneConfirmed?: (timeZone: string) => void;
 };
 
 type ActionStatus = {
@@ -49,6 +51,8 @@ export function ScheduleActions({
   hasPrivateDateChanges = false,
   effectiveMonth,
   effectiveYear,
+  timeZone = "",
+  onTimeZoneConfirmed,
 }: ScheduleActionsProps) {
   const [status, setStatus] = useState<ActionStatus | null>(null);
   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
@@ -289,14 +293,18 @@ export function ScheduleActions({
           <TimedExportPanel
             config={config}
             dates={effectiveYear}
+            initialTimeZone={timeZone}
             onClose={closeTimedExport}
+            onTimeZoneConfirmed={onTimeZoneConfirmed}
             scope={{ year: yearlyView.year }}
           />
         ) : effectiveMonth !== undefined ? (
           <TimedExportPanel
             config={config}
             dates={effectiveMonth}
+            initialTimeZone={timeZone}
             onClose={closeTimedExport}
+            onTimeZoneConfirmed={onTimeZoneConfirmed}
             scope={{ viewMonth: view.viewMonth }}
           />
         ) : null

@@ -116,9 +116,19 @@ Timezone law changes and future pinned-data releases require maintenance review.
 
 Exit criteria were met: formatting, linting, type checking, all 307 unit/component tests, 293 schedule tests in UTC, America/New_York, and Africa/Casablanca, all 42 browser tests, the production build, and production dependency audit passed. The IANA payload is isolated in a 331,913-byte lazy chunk (57,524 gzip; 47,895 Brotli) and is absent from initial route chunks.
 
-## Phase 6B — local persistence, backup, and offline use (planned)
+## Phase 6B — local persistence, backup, and offline use
 
-IndexedDB saved planners, versioned JSON backup/import, and PWA/offline behavior remain separate. Phases 6A2–6A3 introduce no browser storage.
+### Phase 6B1 — local planner persistence and JSON backup/import (complete)
+
+- Native versioned IndexedDB with atomic planner aggregates, last-opened metadata, optimistic revisions and advisory cross-tab invalidation
+- Explicit first save plus committed-state 750 ms autosave; invalid/unapplied drafts remain ephemeral
+- Up to 20 named planners with open, rename, duplicate, confirmed delete, single/all JSON export, strict review and atomic import-as-new
+- Clean-root restoration with unchanged base-only V1 URL precedence and graceful unsaved fallback
+- No production/test dependency, server endpoint, account, cloud synchronization, URL V2, analytics, or deployment
+
+PWA installation, service workers and offline asset caching remain a separate later Phase 6B step after persistence stability is reviewed.
+
+Exit criteria were met: a clean install, formatting, linting, type checking, all 318 unit/component tests, 304 schedule tests in UTC, America/New_York, and Africa/Casablanca, all 48 browser tests, the production build, and the production dependency audit passed. Real Chromium covers native IndexedDB, planner lifecycle, autosave/reload, validated backup/import, V1 precedence, cross-tab conflict handling, unavailable-storage fallback, and responsive widths. The pinned timezone payload remains lazy and no dependency or server route was added.
 
 ## Later evaluation
 

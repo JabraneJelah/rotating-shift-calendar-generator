@@ -1,6 +1,6 @@
 # Schedule domain
 
-This document defines the schedule and optional personal-planner contracts through Phase 6A4. The base engine models repeating calendar-day categories, not employment policy or exact work times.
+This document defines the schedule, optional personal-planner, and persisted-planner contracts through Phase 6B1. The base engine models repeating calendar-day categories, not employment policy or exact work times.
 
 ## Terms
 
@@ -170,7 +170,7 @@ net = gross - unpaidBreakMinutes
 
 For explicit equal-time 24-hour shifts, gross is 1,440. Calculations are nominal wall-clock minutes and do not adjust across daylight-saving changes. The planner domain imports no `Date`, timezone, locale, React, Next.js, browser, or storage API.
 
-Personal definitions are ephemeral through Phase 6A2. They do not enter V1 URLs, history state, copied links, `ScheduleConfig`, `ScheduleOccurrence`, or all-day ICS identity/content. Reload restores only the base V1 schedule. Definitions and aggregate effective statistics may become durable only through separately approved later phases.
+Personal definitions do not enter V1 URLs, history state, copied links, `ScheduleConfig`, `ScheduleOccurrence`, or all-day ICS identity/content. An explicitly saved Phase 6B1 planner may persist validated definitions locally as part of its atomic aggregate; an unsaved or V1 URL session remains ephemeral.
 
 ## Date exceptions and effective projection
 
@@ -187,3 +187,9 @@ Recurring/range exceptions, multiple additional occurrences, pay, employer-speci
 Phase 6A4 projects only effective working occurrences into a separate timed representation. Each local start and end boundary is resolved independently in an explicitly selected IANA timezone using pinned 2026d rules. A nonexistent local time is an atomic failure; a repeated local time has no default and requires an explicit earlier/later choice. Overnight work advances the civil end date before resolution. Equal-time explicit 24-hour work ends at the same wall time on the following civil date, so its exact duration may be 23, 24, or 25 hours.
 
 Timed occurrence starts are supported only from `1970-01-01` through `2037-12-31`. A qualifying overnight or explicit 24-hour occurrence starting on the maximum date may resolve its exclusive end on `2038-01-01`. Other occurrences beginning outside the range fail atomically with `UNSUPPORTED_TIMED_EXPORT_YEAR`; they are never clamped or skipped. This conservative timed-only boundary does not affect date-only generation, views, all-day export, print, sharing, or V1 URLs.
+
+## Persisted planner contract
+
+Planner schema version 1 and domain-data version 1 are independent from IndexedDB database version 1, backup format version 1, and the V1 schedule-link version. A persisted planner owns a UUID, normalized unique name, positive monotonic revision, UTC creation/update timestamps, validated `ScheduleConfig`, week start, the complete validated definition registry, validated date exceptions, and an optional explicitly confirmed IANA timezone. The IndexedDB-only `nameKey` is derived and excluded from backups.
+
+Expanded occurrences, effective projections, statistics, insights, calendar navigation, ICS content, invalid drafts, focus/status state, and DST overlap choices are not authoritative data. They are recomputed or discarded. Every stored/imported aggregate is runtime validated before use. One stale revision cannot overwrite another; imported planners receive new planner IDs and revision 1 while preserving valid internal definition and exception references.

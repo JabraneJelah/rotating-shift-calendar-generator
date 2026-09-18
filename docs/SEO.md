@@ -34,6 +34,8 @@ Phase 6A3 date replacements, Leave, Sick, Training, Additional work, notes, and 
 
 Phase 6A4 timezone choice, DST disambiguation, timed filenames, and UTC event values are browser-only export state. They add no route, query parameter, canonical, metadata, structured data, sitemap entry, or V1 field.
 
+Phase 6B1 saved-planner IDs, names, revisions, definitions, exceptions, notes, timezone and backup metadata remain in browser storage/files only. They never enter V1 links, canonicals, metadata, JSON-LD, referrers, server logs, analytics, or the sitemap. A clean `/` may restore a planner after hydration without changing server-rendered SEO content; any V1 query remains an unsaved base-only session. No planner-management route or URL V2 is introduced.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

@@ -306,6 +306,250 @@ test("downloads an explicitly zoned timed work calendar locally", async ({
   expect(externalRequests).toEqual([]);
 });
 
+test("restores complete advanced planner details, exceptions, notes, and timezone", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Shift pattern").selectOption("2-day-2-night-4-off");
+  await page.getByText("Shift details (optional)").click();
+  const day = page.getByRole("group", { name: "Day details" });
+  const night = page.getByRole("group", { name: "Night details" });
+  await day.getByLabel("Shift name").fill("Morning duty");
+  await day.getByLabel(/start time/i).fill("08:00");
+  await day.getByLabel(/end time/i).fill("16:00");
+  await day.getByLabel(/unpaid break/i).fill("30");
+  await night.getByLabel(/start time/i).fill("22:00");
+  await night.getByLabel(/end time/i).fill("06:00");
+  await night.getByLabel(/unpaid break/i).fill("30");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  await page.getByRole("button", { name: /add or edit date/i }).click();
+  await page.getByLabel("Primary change").selectOption("leave");
+  await page.getByLabel(/add one additional-work occurrence/i).check();
+  await page
+    .getByLabel(/private personal note/i)
+    .fill("Fictional private note");
+  await page.getByRole("button", { name: /save date change/i }).click();
+
+  await page
+    .getByRole("button", { name: /export timed work calendar/i })
+    .click();
+  await page.getByLabel("Time zone").fill("Africa/Casablanca");
+  const timedDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: /download timed calendar/i }).click();
+  await timedDownload;
+  await page.getByRole("button", { name: "Close timed export" }).click();
+
+  await page.getByLabel("Planner name").fill("Advanced rotation");
+  await page.getByRole("button", { name: "Save planner" }).click();
+  await expect(page.getByText("Current: Advanced rotation")).toBeVisible();
+  await page.reload();
+
+  await expect(page.getByText("Current: Advanced rotation")).toBeVisible();
+  await expect(page.getByLabel("Shift legend")).toContainText("Morning duty");
+  await expect(page.getByLabel("Shift legend")).toContainText("08:00–16:00");
+  await expect(page.getByText("Monthly personal statistics")).toBeVisible();
+  await page.getByRole("button", { name: /add or edit date/i }).click();
+  await expect(page.getByLabel(/private personal note/i)).toHaveValue(
+    "Fictional private note",
+  );
+  await page
+    .getByRole("button", { name: /export timed work calendar/i })
+    .click();
+  await expect(page.getByLabel("Time zone")).toHaveValue("Africa/Casablanca");
+});
+
+test("saves a planner in IndexedDB, restores it on a clean reload, and protects the committed result", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  await page.getByLabel("Planner name").fill("Primary rotation");
+  await page.getByRole("button", { name: "Save planner" }).click();
+  await expect(page.getByText("Current: Primary rotation")).toBeVisible();
+  await expect(page.getByText("Saved locally", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL("http://127.0.0.1:3000/");
+
+  const databaseShape = await page.evaluate(async () => {
+    const request = indexedDB.open("shift-calendar-local", 1);
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const transaction = database.transaction("planners", "readonly");
+    const store = transaction.objectStore("planners");
+    const countRequest = store.count();
+    const count = await new Promise<number>((resolve, reject) => {
+      countRequest.onsuccess = () => resolve(countRequest.result);
+      countRequest.onerror = () => reject(countRequest.error);
+    });
+    const result = {
+      stores: Array.from(database.objectStoreNames),
+      indexes: Array.from(store.indexNames),
+      count,
+    };
+    database.close();
+    return result;
+  });
+  expect(databaseShape).toEqual({
+    stores: ["meta", "planners"],
+    indexes: ["byNameKey", "byUpdatedAt"],
+    count: 1,
+  });
+
+  await page.reload();
+  await expect(page.getByText("Current: Primary rotation")).toBeVisible();
+  await expect(startDate(page)).toHaveValue("2026-10-01");
+
+  await startDate(page).fill("2026-11-05");
+  await page.getByRole("button", { name: /update schedule/i }).click();
+  await expect(page.getByText("Saved locally", { exact: true })).toBeVisible();
+
+  await startDate(page).fill("");
+  await page.getByRole("button", { name: /update schedule/i }).click();
+  await expect(page.getByText("Check your schedule details")).toBeVisible();
+  await page.reload();
+  await expect(startDate(page)).toHaveValue("2026-11-05");
+});
+
+test("keeps a valid V1 link unsaved and base-only when a local planner exists", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByLabel("Planner name").fill("Local private planner");
+  await page.getByRole("button", { name: "Save planner" }).click();
+  await expect(page.getByText("Current: Local private planner")).toBeVisible();
+
+  await page.goto(
+    "/?v=1&kind=preset&p=4-on-4-off&s=2027-01-02&shift=day&m=2027-01",
+  );
+  await expect(startDate(page)).toHaveValue("2027-01-02");
+  await expect(
+    page.getByText("Unsaved planner", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/Current: Local private planner/)).toHaveCount(0);
+});
+
+test("renames, duplicates, deletes, exports, reviews, and atomically imports local planners", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByLabel("Planner name").fill("Primary rotation");
+  await page.getByRole("button", { name: "Save planner" }).click();
+  await page.getByText("Manage saved planners (1)").click();
+
+  await page.getByRole("button", { name: "Rename Primary rotation" }).click();
+  await page.getByLabel("New planner name").fill("Renamed rotation");
+  await page.getByRole("button", { name: "Rename", exact: true }).click();
+  await expect(page.getByText("Current: Renamed rotation")).toBeVisible();
+
+  await page
+    .getByRole("button", { name: "Duplicate Renamed rotation" })
+    .click();
+  await page.getByRole("button", { name: "Duplicate", exact: true }).click();
+  await expect(page.getByText("Manage saved planners (2)")).toBeVisible();
+
+  const allDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export all JSON" }).click();
+  const allDownload = await allDownloadPromise;
+  expect(allDownload.suggestedFilename()).toMatch(
+    /^shift-calendar-backup-\d{4}-\d{2}-\d{2}\.json$/,
+  );
+  const backupPath = await allDownload.path();
+  expect(backupPath).not.toBeNull();
+  const backupContent = await readFile(backupPath!, "utf8");
+  const backup = JSON.parse(backupContent) as {
+    format: string;
+    planners: unknown[];
+  };
+  expect(backup.format).toBe("shift-calendar-planner-backup");
+  expect(backup.planners).toHaveLength(2);
+
+  const duplicateRow = page
+    .getByRole("listitem")
+    .filter({ hasText: "Renamed rotation copy" });
+  page.once("dialog", (dialog) => void dialog.accept());
+  await duplicateRow
+    .getByRole("button", { name: "Delete Renamed rotation copy" })
+    .click();
+  await expect(page.getByText("Manage saved planners (1)")).toBeVisible();
+
+  await page.getByLabel("Import JSON backup").setInputFiles({
+    name: "shift-calendar-backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backupContent),
+  });
+  await expect(
+    page.getByRole("heading", { name: "Review import" }),
+  ).toBeVisible();
+  await expect(page.getByText(/2 planners; backup version 1/)).toBeVisible();
+  await expect(
+    page.getByText(/Existing planners will not be overwritten/),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Import as new" }).click();
+  await expect(page.getByText("Manage saved planners (3)")).toBeVisible();
+  await expect(page.getByText("Renamed rotation (imported)")).toBeVisible();
+});
+
+test("surfaces a newer saved revision from another tab without overwriting local state", async ({
+  context,
+  page,
+}) => {
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByLabel("Planner name").fill("Cross-tab rotation");
+  await page.getByRole("button", { name: "Save planner" }).click();
+
+  const secondPage = await context.newPage();
+  await secondPage.goto("/");
+  await expect(
+    secondPage.getByText("Current: Cross-tab rotation"),
+  ).toBeVisible();
+
+  await startDate(page).fill("2026-11-01");
+  await page.getByRole("button", { name: /update schedule/i }).click();
+  await expect(page.getByText("Saved locally", { exact: true })).toBeVisible();
+
+  await expect(
+    secondPage.getByText(/newer saved version exists in another tab/i),
+  ).toBeVisible();
+  await expect(
+    secondPage.getByText("Conflict detected", { exact: true }),
+  ).toBeVisible();
+  await expect(startDate(secondPage)).toHaveValue("2026-10-01");
+});
+
+test("keeps the unsaved generator usable when IndexedDB is unavailable", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "indexedDB", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+  await page.goto("/");
+  await expect(
+    page.getByText(/local saving is not available in this browser/i),
+  ).toBeVisible();
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await expect(
+    page.getByRole("heading", { name: "October 2026" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Save planner" }),
+  ).toBeDisabled();
+});
+
 test("applies, exports, prints, and forgets private date changes", async ({
   page,
 }) => {

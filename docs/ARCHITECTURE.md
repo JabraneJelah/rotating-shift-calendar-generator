@@ -63,7 +63,15 @@ The planner layer imports the public schedule types only to resolve an existing 
 
 Phase 6A3 extends this planner boundary with validated date records, a pure effective projector, and pure statistics. Each record has at most one primary exception, one additional-work occurrence, and one note. The projector consumes an already expanded immutable base range plus the registry and exceptions; it alone applies precedence. Calendar components receive projected values and never reimplement exception rules. Statistics, effective next-work information, print, and advanced all-day export consume the same representation.
 
-Date-exception state remains in `ScheduleGenerator` memory and is never added to configuration, history, V1, storage, or server state. Month/year navigation preserves it; URL restoration discards it. A newly generated different base configuration clears date changes so a change is not silently reinterpreted against another rotation.
+Date-exception state remains outside configuration, history, V1, and server state. Month/year navigation preserves it; URL restoration discards it. A newly generated different base configuration clears date changes so a change is not silently reinterpreted against another rotation. Phase 6B1 may persist the validated collection only inside an explicitly saved local planner aggregate.
+
+### Local persistence and backup boundary
+
+Phase 6B1 adds pure codecs, limits, migrations, backup parsing, and typed errors under `src/features/schedule/persistence`, plus a client-only native IndexedDB repository. Database `shift-calendar-local` version 1 has `planners` (key `id`, unique `byNameKey`, non-unique `byUpdatedAt`) and `meta` (key `key`) stores. One planner is one atomic record; definitions and exceptions are deliberately not normalized. React receives domain-oriented repository results and never handles `IDBRequest`, transactions, DOMExceptions, or upgrade events.
+
+The first record is explicit. Thereafter `ScheduleGenerator` compares only its valid committed aggregate and debounces updates for 750 ms. The repository re-reads and compares `expectedRevision` inside the write transaction and reports success only after transaction completion. `BroadcastChannel` sends only action, planner ID, and revision as an advisory invalidation hint. Clean `/` restores the validated last-opened record after hydration; any non-empty V1 query suppresses local restoration and stays unsaved/base-only.
+
+JSON backup version 1 is readable, bounded, strictly decoded and imported as new. File size, depth, aggregate strings, record counts, unsafe keys, exact shapes, versions, domain rules, IDs, names and timezones are checked before review. A complete reviewed batch is written in one transaction. Browser persistence remains best-effort; failures leave the unsaved generator operational.
 
 ## Calendar export boundary
 

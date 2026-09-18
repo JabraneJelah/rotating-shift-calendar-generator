@@ -307,4 +307,24 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 
 **Reason:** Exact shifts need auditable civil-time conversion, while existing all-day export must remain small, stable, and usable without timezone assumptions.
 
-**Consequences:** No zone is inferred and no host/network/UTC fallback exists. Timezone laws can change, so occurrence starts are conservatively limited to 1970–2037; a valid final overnight/24-hour end may reach 2038-01-01. Future pinned-data updates may justify reviewing the range. All-day export remains available outside it, and timed state does not enter V1, storage, or server traffic.
+**Consequences:** No zone is inferred and no host/network/UTC fallback exists. Timezone laws can change, so occurrence starts are conservatively limited to 1970–2037; a valid final overnight/24-hour end may reach 2038-01-01. Future pinned-data updates may justify reviewing the range. All-day export remains available outside it. The explicitly confirmed timezone may enter a Phase 6B1 saved planner, but overlap decisions remain export-only and no timed state enters V1 or server traffic.
+
+## D-043 — Native atomic local planner storage
+
+**Status:** Accepted
+
+**Decision:** Use native IndexedDB database `shift-calendar-local` version 1 with one bounded aggregate per `planners` record and a small `meta` store. Require an explicit first save, then debounce only valid committed changes for 750 ms. Use UUID identity, monotonic revisions checked inside write transactions, and advisory `BroadcastChannel` invalidation without planner contents.
+
+**Reason:** The generator already separates raw drafts from the last valid result. A single local aggregate preserves that boundary, avoids normalized-record partial updates, and supports reload recovery without introducing accounts, servers, or a wrapper dependency.
+
+**Consequences:** A clean `/` restores the last-opened validated planner after hydration; every V1 query remains unsaved and base-only. Browser storage is best-effort rather than synchronized or encrypted. Stale writes fail visibly, and unavailable storage leaves the unsaved generator usable.
+
+## D-044 — Readable atomic backup/import-as-new
+
+**Status:** Accepted
+
+**Decision:** Use strict readable JSON backup format `shift-calendar-planner-backup` version 1 for single/all export. Validate size, structure, versions, domain values and security limits before review, then import the complete selection atomically as new IDs with deterministic name conflict suffixes.
+
+**Reason:** Portable user-controlled backup is necessary because browser storage can be cleared or evicted. Import-as-new prevents an untrusted file or coincidental ID from destroying a local record.
+
+**Consequences:** No merge, automatic replacement, encryption, compression, cloud upload, URL V2, or partial success exists in Phase 6B1. Backup files may contain private details and must be treated as private documents.
