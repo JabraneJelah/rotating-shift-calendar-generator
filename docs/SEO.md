@@ -32,6 +32,8 @@ Phase 6A2 personal shift names, labels, colors, times, breaks, and definition ID
 
 Phase 6A3 date replacements, Leave, Sick, Training, Additional work, notes, and effective totals are likewise client-only state. They create no route, query parameter, canonical variant, metadata, structured data, or sitemap entry. Copy continues emitting only the compatible V1 base rotation.
 
+Phase 6A4 timezone choice, DST disambiguation, timed filenames, and UTC event values are browser-only export state. They add no route, query parameter, canonical, metadata, structured data, sitemap entry, or V1 field.
+
 ## Metadata and canonicals
 
 Every indexable route needs a unique, accurate title and description written for the page. Use native Next.js metadata APIs. Titles should lead with the page purpose and inherit the site-name template. Canonicals must resolve against the validated `NEXT_PUBLIC_SITE_URL` origin and normally point to the clean route without tracking or configuration parameters.

@@ -104,9 +104,17 @@ Exit criteria were met: formatting, lint, type checking, all 199 unit/component 
 
 Exit criteria were met: formatting, lint, type checking, all 265 unit/component tests, 251 schedule tests in UTC and America/New_York, all 41 browser tests, and the production build passed. Effective month/year views, accessibility, privacy, all-day exports, printing, and responsive layouts are covered without dependency, route, sitemap, storage, or V1 changes.
 
-### Phase 6A4 — explicitly zoned timed ICS (planned)
+### Phase 6A4 — explicitly zoned timed ICS (complete)
 
-Timed export requires an explicit IANA timezone, DST policy, `VTIMEZONE`, and client-compatibility verification. Existing exports remain all-day until then.
+- Separate lazy timed-work export with explicit IANA timezone selection and pinned 2026d rules
+- Atomic gap rejection and explicit earlier/later overlap choices
+- UTC month/year files, stable timed identities, local-only processing, and no private notes
+- Conservative 1970–2037 occurrence-start support, with the approved final overnight/24-hour end boundary in 2038
+- Existing all-day exports preserved and available outside the timed range
+
+Timezone law changes and future pinned-data releases require maintenance review. Vendor import compatibility remains unclaimed until manually tested.
+
+Exit criteria were met: formatting, linting, type checking, all 307 unit/component tests, 293 schedule tests in UTC, America/New_York, and Africa/Casablanca, all 42 browser tests, the production build, and production dependency audit passed. The IANA payload is isolated in a 331,913-byte lazy chunk (57,524 gzip; 47,895 Brotli) and is absent from initial route chunks.
 
 ## Phase 6B — local persistence, backup, and offline use (planned)
 

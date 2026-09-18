@@ -261,6 +261,51 @@ test("applies private overnight shift details but drops them on reload", async (
   ).toHaveCount(0);
 });
 
+test("downloads an explicitly zoned timed work calendar locally", async ({
+  page,
+}) => {
+  const externalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.hostname !== "127.0.0.1" && url.hostname !== "localhost") {
+      externalRequests.push(request.url());
+    }
+  });
+
+  await page.goto("/");
+  await page.getByLabel("Shift pattern").selectOption("2-day-2-night-4-off");
+  await page.getByText("Shift details (optional)").click();
+  const day = page.getByRole("group", { name: "Day details" });
+  const night = page.getByRole("group", { name: "Night details" });
+  await day.getByLabel(/start time/i).fill("08:00");
+  await day.getByLabel(/end time/i).fill("16:00");
+  await night.getByLabel(/start time/i).fill("22:00");
+  await night.getByLabel(/end time/i).fill("06:00");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+
+  await page
+    .getByRole("button", { name: /export timed work calendar/i })
+    .click();
+  const timeZone = page.getByLabel("Time zone");
+  await expect(timeZone).toBeFocused();
+  await expect(timeZone).toHaveValue("");
+  await timeZone.fill("Africa/Casablanca");
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: /download timed calendar/i }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("shift-calendar-2026-10-timed.ics");
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const content = await readFile(downloadPath!, "utf8");
+  expect(content).toContain("DTSTART:20261001T080000Z");
+  expect(content).toContain("Work timezone: Africa/Casablanca");
+  expect(content).not.toContain("VTIMEZONE");
+  expect(content).not.toContain("TZID");
+  expect(externalRequests).toEqual([]);
+});
+
 test("applies, exports, prints, and forgets private date changes", async ({
   page,
 }) => {

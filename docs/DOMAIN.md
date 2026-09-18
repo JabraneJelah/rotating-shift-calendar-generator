@@ -1,6 +1,6 @@
 # Schedule domain
 
-This document defines the schedule and optional personal-planner contracts through Phase 6A3. The base engine models repeating calendar-day categories, not employment policy or exact work times.
+This document defines the schedule and optional personal-planner contracts through Phase 6A4. The base engine models repeating calendar-day categories, not employment policy or exact work times.
 
 ## Terms
 
@@ -182,4 +182,8 @@ Effective all-day export emits one primary event per date and a second event for
 
 ## Deferred edge cases
 
-Timezone conversion, DST-adjusted elapsed duration, recurring/range exceptions, multiple additional occurrences, pay, employer-specific alternating rotations, and split shifts remain deferred. Month and complete-year ICS exports remain all-day with exclusive next-calendar-date ends. Explicitly zoned timed export requires the separate Phase 6A4 contract without weakening the date-only model.
+Recurring/range exceptions, multiple additional occurrences, pay, employer-specific alternating rotations, and split shifts remain deferred. Existing month and complete-year all-day ICS retain exclusive next-calendar-date ends.
+
+Phase 6A4 projects only effective working occurrences into a separate timed representation. Each local start and end boundary is resolved independently in an explicitly selected IANA timezone using pinned 2026d rules. A nonexistent local time is an atomic failure; a repeated local time has no default and requires an explicit earlier/later choice. Overnight work advances the civil end date before resolution. Equal-time explicit 24-hour work ends at the same wall time on the following civil date, so its exact duration may be 23, 24, or 25 hours.
+
+Timed occurrence starts are supported only from `1970-01-01` through `2037-12-31`. A qualifying overnight or explicit 24-hour occurrence starting on the maximum date may resolve its exclusive end on `2038-01-01`. Other occurrences beginning outside the range fail atomically with `UNSUPPORTED_TIMED_EXPORT_YEAR`; they are never clamped or skipped. This conservative timed-only boundary does not affect date-only generation, views, all-day export, print, sharing, or V1 URLs.

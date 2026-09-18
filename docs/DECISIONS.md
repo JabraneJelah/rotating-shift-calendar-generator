@@ -298,3 +298,13 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** Users need an export matching the effective calendar without prematurely inventing timezone semantics or leaking private annotations.
 
 **Consequences:** Generated primary UIDs retain legacy identity; exception roles use deterministic non-personal suffixes. Timed ICS remains Phase 6A4.
+
+## D-042 — Pinned, lazy, UTC timed-work export
+
+**Status:** Accepted
+
+**Decision:** Add a separate explicit timed work-calendar export using lazy `timezonecomplete@5.15.1` plus direct `tzdata@1.0.51` (IANA 2026d). Resolve local boundaries through the low-level database, require choices for overlaps, reject gaps, and serialize UTC instants without `VTIMEZONE`.
+
+**Reason:** Exact shifts need auditable civil-time conversion, while existing all-day export must remain small, stable, and usable without timezone assumptions.
+
+**Consequences:** No zone is inferred and no host/network/UTC fallback exists. Timezone laws can change, so occurrence starts are conservatively limited to 1970–2037; a valid final overnight/24-hour end may reach 2038-01-01. Future pinned-data updates may justify reviewing the range. All-day export remains available outside it, and timed state does not enter V1, storage, or server traffic.

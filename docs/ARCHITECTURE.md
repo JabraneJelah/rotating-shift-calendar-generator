@@ -77,6 +77,10 @@ Applied personal names, colors, labels, hours, breaks, and IDs are not passed to
 
 Phase 6A3 retains the legacy serializer for ranges without date changes and adds a separate effective all-day serializer. It emits one primary event and, when present, one additional-work event per date. Generated primary identities remain compatible; exception roles receive deterministic non-personal identities. Notes are never passed to serialization. Both paths remain date-only and timezone-free.
 
+Phase 6A4 adds a separate lazy timed-export boundary. Opening the timed panel dynamically imports the runtime that exclusively owns `timezonecomplete@5.15.1`, direct `tzdata@1.0.51`, the resolver adapter, timed projection, and UTC serializer. The adapter explicitly initializes `TzDatabase` with direct IANA 2026d data and fails closed on a version/sentinel mismatch. It never falls back to host `Intl`, UTC, fixed offsets, nested package data, or network data.
+
+The pure timed projector consumes already-effective dates, includes only working occurrences, and omits Off, Leave, Sick, and notes. It validates the entire request before serialization, including the conservative 1970–2037 occurrence-start range, complete time details, DST gaps, repeated-time choices, and positive UTC intervals. The serializer emits UTC `DTSTART`/`DTEND` values with a distinct `timed-v1` UID namespace and no `TZID` or `VTIMEZONE`. Existing all-day serializers and actions do not import this runtime and remain unchanged.
+
 ## Rendering and state
 
 Server Components remain the default. `src/features/schedule/components/schedule-generator.tsx` is the single explicit Client Component boundary; its form, calendar, and presentation imports form the smallest practical client graph. `page.tsx`, layout, header, metadata, and introductory content remain server-rendered.

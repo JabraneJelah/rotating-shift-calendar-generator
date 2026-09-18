@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Copy, Download, Printer } from "lucide-react";
+import { Clock3, Copy, Download, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,8 @@ import {
 import type { EffectiveScheduleDate } from "@/features/schedule/planner";
 import type { MonthlyCalendarView } from "@/features/schedule/presentation/calendar-view";
 import type { YearlyCalendarView } from "@/features/schedule/presentation/yearly-calendar-view";
+
+import { TimedExportPanel } from "./timed-export-panel";
 
 type ScheduleActionsProps = {
   readonly config: ScheduleConfig;
@@ -52,6 +54,7 @@ export function ScheduleActions({
   const [manualCopyUrl, setManualCopyUrl] = useState<string | null>(null);
   const fallbackInputRef = useRef<HTMLInputElement>(null);
   const statusTimerRef = useRef<number | null>(null);
+  const [showTimedExport, setShowTimedExport] = useState(false);
 
   useEffect(
     () => () => {
@@ -78,6 +81,14 @@ export function ScheduleActions({
       setStatus(null);
       statusTimerRef.current = null;
     }, 5_000);
+  }
+
+  function closeTimedExport() {
+    setShowTimedExport(false);
+    window.setTimeout(
+      () => document.getElementById("timed-export-action")?.focus(),
+      0,
+    );
   }
 
   function canonicalScheduleUrl(): string | null {
@@ -255,11 +266,41 @@ export function ScheduleActions({
             Export this year (.ics)
           </Button>
         ) : null}
+        <Button
+          aria-expanded={showTimedExport}
+          id="timed-export-action"
+          onClick={() => setShowTimedExport((current) => !current)}
+          type="button"
+          variant="outline"
+        >
+          <Clock3 aria-hidden="true" className="mr-2 size-4" />
+          Export timed work calendar
+        </Button>
         <Button onClick={onPrint} type="button" variant="outline">
           <Printer aria-hidden="true" className="mr-2 size-4" />
           Print {activeView} view
         </Button>
       </div>
+
+      {showTimedExport ? (
+        activeView === "year" &&
+        yearlyView !== null &&
+        effectiveYear !== undefined ? (
+          <TimedExportPanel
+            config={config}
+            dates={effectiveYear}
+            onClose={closeTimedExport}
+            scope={{ year: yearlyView.year }}
+          />
+        ) : effectiveMonth !== undefined ? (
+          <TimedExportPanel
+            config={config}
+            dates={effectiveMonth}
+            onClose={closeTimedExport}
+            scope={{ viewMonth: view.viewMonth }}
+          />
+        ) : null
+      ) : null}
 
       <p className="text-muted-foreground mt-3 text-xs leading-5">
         Importing the same file more than once may create duplicate events in

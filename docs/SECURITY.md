@@ -14,6 +14,8 @@ Phase 6A2 personal details exist only in in-memory React state. They are not wri
 
 Phase 6A3 date exceptions and notes use the same in-memory boundary. Replacement, absence, Training, Additional work, and note values never enter URLs, history payloads, browser storage, logs, analytics, metadata, or network requests. Notes are normalized and bounded plain text rendered only through React; they are excluded from copied links, print, accessible calendar names, and ICS. Exception-aware ICS is an explicit local download that includes effective status labels but never note contents. Refresh discards all date changes.
 
+Phase 6A4 keeps timezone selection and overlap choices in component memory and performs conversion and file creation locally. Pinned IANA 2026d data is bundled and loaded only after the timed action; no timezone, schedule, credential, or private note is sent to a server. Initialization and conversion fail closed without `Intl`, UTC, guessed-offset, nested-data, or network fallback. Complete validation precedes Blob creation, preventing partial downloads.
+
 ## Input and output controls
 
 - Validate all URL, form, and environment input at its boundary with length and shape limits.
