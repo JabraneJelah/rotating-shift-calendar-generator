@@ -9,17 +9,35 @@ not started, not decided. Prefer this file over conversation memory.
 ## Current HEAD and push state
 
 - Branch: `main`
-- HEAD: `56791a0` — "docs: add Phase 7A UX/IA audit"
+- HEAD: `44e9c5e` — "style: restyle homepage hero to match restrained product identity"
 - `origin/main`: `c19080d` — "feat: add installable offline PWA"
-- HEAD is **two commits ahead of `origin/main`**, not yet pushed:
+- HEAD is **four commits ahead of `origin/main`**, not yet pushed:
   - `d0bae18` — feat: add visible unapplied-changes indicator and differentiated update action
   - `56791a0` — docs: add Phase 7A UX/IA audit
+  - `e61c17a` — docs: add HANDOFF.md continuity anchor
+  - `44e9c5e` — style: restyle homepage hero to match restrained product identity
 - Working tree was clean at the time this file was written (`git status --short` produced no output).
 - No push has been authorized. Do not push without explicit user authorization.
 
 ## Most recently completed work
 
-**Phase 7B Step 1 — visible unapplied-changes indicator and differentiated Update action** (`d0bae18`).
+**Phase 7B Step 3 — homepage hero restyle** (`44e9c5e`).
+
+- Real-user testing reported the site "feels AI-generated"; Phase 7A's audit traced this to a
+  concentrated set of choices in the homepage hero specifically, not the design-token system.
+- Removed the only gradient in the codebase (the radial gradient behind the hero copy) and its
+  now-unnecessary containing wrapper; changed the eyebrow line from a rounded-pill badge to plain
+  text, matching the convention the generator itself already uses; reduced the headline from
+  `text-4xl/5xl/6xl` to `text-lg/xl` so it reads as clearly, visibly subordinate to the generator's
+  own result heading (`text-2xl`) rather than merely "not larger"; removed the chip container
+  around each outcomes-row icon, matching the plain icon+text convention already used elsewhere in
+  the app; kept the CTA's trailing arrow as a legitimate in-page jump affordance.
+- No new token, no new dependency, no client-boundary change. Contrast computed (not assumed) for
+  every hero text/background pairing; all pass AA. No existing test required updating.
+
+Source document: `docs/plans/015-homepage-hero-restyle.md`.
+
+Preceded by **Phase 7B Step 1 — visible unapplied-changes indicator and differentiated Update action** (`d0bae18`).
 
 - `hasUnappliedEdits` (previously computed but never rendered) is now wired to a real, visible,
   non-color-only UI indicator when a generator setting is edited after a schedule has already
@@ -40,12 +58,14 @@ for Phase 7B. No production code changed in that commit.
 
 Source documents:
 - `docs/plans/014-unapplied-changes-indicator.md`
+- `docs/plans/015-homepage-hero-restyle.md`
 - `docs/research/ux-ia-audit-phase-7a-2026-09.md`
 
 ## Verified test state at handoff
 
-As of 2026-09-20, per the `d0bae18` commit message and confirmed executed on the Windows
-development machine (not merely claimed):
+As of 2026-09-20, confirmed executed on the Windows development machine (not merely claimed),
+re-confirmed again at `44e9c5e` (Step 3 touched no unit-tested logic; the e2e suite was re-run
+in full and passed with the restyled hero in place):
 
 - **371/371 unit tests** passing
 - **49/49 e2e tests** passing
@@ -60,8 +80,6 @@ this state on a later date or after further changes.
 - **Phase 7B Step 2** — reorder so the calendar result appears before the Local Planners/PWA
   panels in DOM order; correct heading ranks so the calendar result is not at the same semantic
   heading level as secondary panels.
-- **Phase 7B Step 3** — homepage hero restyle: remove or reduce the gradient, the marketing-style
-  pill badge, and the oversized headline identified in the Phase 7A audit, §6.
 - **PWA "Update now" label wording change** — deferred by explicit user decision. The visual fix
   (a distinct icon) already shipped in Step 1 (`d0bae18`); the label text itself was intentionally
   left unchanged.
