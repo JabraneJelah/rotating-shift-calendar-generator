@@ -100,6 +100,10 @@ An available update is user-mediated. **Later** leaves the current release runni
 
 Motion is brief and functional. Honor `prefers-reduced-motion`, avoid autoplaying effects, and do not make important feedback depend on animation.
 
+## Homepage hero
+
+Phase 7B Step 3 restyled the homepage hero (`src/app/page.tsx`) after real-user testing found the site "feels AI-generated" — traced by audit to a concentrated set of hero-only choices, not the token system. The hero carries no gradient, glow, or blur; the "A practical planner for rotating work" line is plain text (`text-primary text-sm font-semibold`), not a rounded pill, matching the same eyebrow convention the generator itself already uses for "Free schedule generator." The H1 is sized `text-lg sm:text-xl` (18–20px) — visibly smaller than the generator's own result heading (`calendar-result-heading`, a flat `text-2xl`/24px) at every width, so the tool is never visually less prominent than its own marketing framing, while still sharing that heading's `font-bold tracking-tight` weight so the size difference reads as intentional hierarchy rather than an unrelated style. The three-item outcomes row (proven pattern / clear monthly calendar / no account required) pairs a plain icon directly with its text, with no chip or pill container — the same plain icon+text convention already used by the generator's own privacy line. The in-page CTA to `#generator` keeps its trailing arrow, since that reads as a legitimate jump-to-content affordance rather than decorative flourish.
+
 ## Content discovery pages
 
 Content pages use a comfortable `max-w-4xl` reading area (narrower for About), fluid gutters, one H1, direct introductory copy, restrained bordered sections, and the existing type and color system. Visible breadcrumbs wrap naturally, use ordinary links for ancestors, identify the current page with `aria-current`, and share their labels and paths with structured data.
