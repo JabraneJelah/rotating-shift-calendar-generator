@@ -9,19 +9,54 @@ not started, not decided. Prefer this file over conversation memory.
 ## Current HEAD and push state
 
 - Branch: `main`
-- HEAD: `44e9c5e` — "style: restyle homepage hero to match restrained product identity"
+- HEAD: `14f0067` — "style: consolidate containment, spacing, typography, and icon scale"
 - `origin/main`: `c19080d` — "feat: add installable offline PWA"
-- HEAD is **four commits ahead of `origin/main`**, not yet pushed:
+- HEAD is **six commits ahead of `origin/main`**, not yet pushed:
   - `d0bae18` — feat: add visible unapplied-changes indicator and differentiated update action
   - `56791a0` — docs: add Phase 7A UX/IA audit
   - `e61c17a` — docs: add HANDOFF.md continuity anchor
   - `44e9c5e` — style: restyle homepage hero to match restrained product identity
+  - `99fccbd` — docs: update HANDOFF.md for Phase 7B Step 3 completion
+  - `14f0067` — style: consolidate containment, spacing, typography, and icon scale
 - Working tree was clean at the time this file was written (`git status --short` produced no output).
 - No push has been authorized. Do not push without explicit user authorization.
 
 ## Most recently completed work
 
-**Phase 7B Step 3 — homepage hero restyle** (`44e9c5e`).
+**Phase 7B Step 4 — containment, spacing, typography, and icon scale consolidation** (`14f0067`).
+
+- Execution-consistency pass across the generator and its panels, informed by Linear/Cron/
+  Fantastical/Notion Calendar as restraint reference points, following the same "feels
+  AI-generated" thread Steps 1 and 3 addressed.
+- Main generator card and the PWA status panel moved from a soft floating-card shadow to
+  border-only containment, matching `LocalPlannerPanel`/`ShiftDetailsPanel`'s existing pattern.
+  Shadow was kept only on `TimedExportPanel`, the one surface marked `role="dialog"` — the actual
+  accessibility signal used to decide "transient/overlaid," not visual position. Generator card
+  radius unified from `rounded-3xl` into the existing `rounded-2xl` tier.
+- The generator's own intro heading no longer escalates to `sm:text-3xl`, which made it larger
+  than the result heading (flat `text-2xl`) it introduces — the same bug class Step 3 fixed in
+  the homepage hero, found recurring here and fixed the same way.
+- One stat-tile size inconsistency and one icon-size outlier unified to already-established
+  conventions; one spacing outlier (`mt-7`, the only use anywhere) folded into the existing
+  rhythm.
+- Repo-wide search for the "three-equal-cards" AI-generated-page signal: none found remaining
+  (already resolved by Step 3's hero restyle).
+- No new token, no new dependency, no logic/state/accessibility-behavior change. No existing
+  test required updating.
+
+Source document: `docs/plans/016-visual-elevation-pass.md`.
+
+**New tracked follow-ups from this work (not resolved here):**
+
+- `src/app/offline/page.tsx` still uses the pre-Step-4 shadow + `rounded-3xl` treatment. Apply
+  the same containment fix for consistency whenever that route is next touched.
+- The `border-border`/`bg-card` and `border-border`/`background` pairings compute to **1.43:1**
+  and **1.37:1** respectively — below WCAG 1.4.11's 3:1 non-text-contrast guideline. This is
+  pre-existing (not introduced by Step 4) but is now used by a third element (the generator
+  card). Needs a dedicated accessibility review/fix; do not silently extend this pairing to
+  further new elements until resolved.
+
+Preceded by **Phase 7B Step 3 — homepage hero restyle** (`44e9c5e`).
 
 - Real-user testing reported the site "feels AI-generated"; Phase 7A's audit traced this to a
   concentrated set of choices in the homepage hero specifically, not the design-token system.
@@ -59,13 +94,16 @@ for Phase 7B. No production code changed in that commit.
 Source documents:
 - `docs/plans/014-unapplied-changes-indicator.md`
 - `docs/plans/015-homepage-hero-restyle.md`
+- `docs/plans/016-visual-elevation-pass.md`
 - `docs/research/ux-ia-audit-phase-7a-2026-09.md`
 
 ## Verified test state at handoff
 
 As of 2026-09-20, confirmed executed on the Windows development machine (not merely claimed),
 re-confirmed again at `44e9c5e` (Step 3 touched no unit-tested logic; the e2e suite was re-run
-in full and passed with the restyled hero in place):
+in full and passed with the restyled hero in place), and re-confirmed again at `14f0067` (Step 4
+was also a styling-only pass; both suites were re-run in full — the e2e run was repeated a second
+time after an unrelated dev-server restart during manual verification, with the same result):
 
 - **371/371 unit tests** passing
 - **49/49 e2e tests** passing
