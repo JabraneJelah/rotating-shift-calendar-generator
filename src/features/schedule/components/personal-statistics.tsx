@@ -49,14 +49,14 @@ export function PersonalStatistics({
             <dt className="text-muted-foreground text-xs font-semibold">
               {label}
             </dt>
-            <dd className="mt-1 text-lg font-bold">{value}</dd>
+            <dd className="mt-1 text-xl font-bold">{value}</dd>
           </div>
         ))}
         <div className="bg-background col-span-2 rounded-lg border p-3">
           <dt className="text-muted-foreground text-xs font-semibold">
             {statistics.complete ? "Net scheduled hours" : "Known net hours"}
           </dt>
-          <dd className="mt-1 text-lg font-bold">
+          <dd className="mt-1 text-xl font-bold">
             {formatStatisticsMinutes(statistics.knownNetMinutes)}
           </dd>
           <dd className="text-muted-foreground text-xs">

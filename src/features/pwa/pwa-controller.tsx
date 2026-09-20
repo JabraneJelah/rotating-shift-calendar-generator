@@ -394,7 +394,7 @@ function PwaRuntime() {
       aria-label="Application status"
       className="pwa-status-panel print-hidden mx-auto w-full max-w-6xl px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:px-8"
     >
-      <div className="border-border bg-card flex flex-col gap-4 rounded-2xl border p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-border bg-card flex flex-col gap-4 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           {connectivity === "offline" ? (
             <p className="text-foreground flex items-center gap-2 text-sm font-semibold">

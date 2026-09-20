@@ -1248,7 +1248,7 @@ export function ScheduleGenerator() {
   return (
     <section
       aria-labelledby="generator-title"
-      className="border-border bg-card rounded-3xl border p-4 shadow-[0_24px_70px_-44px_oklch(0.32_0.07_220/0.38)] sm:p-7 lg:p-9"
+      className="border-border bg-card rounded-2xl border p-4 sm:p-7 lg:p-9"
     >
       <div className="generator-intro flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -1257,7 +1257,7 @@ export function ScheduleGenerator() {
           </p>
           <h2
             id="generator-title"
-            className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl"
+            className="mt-1 text-2xl font-bold tracking-tight"
           >
             Build your monthly shift calendar
           </h2>
@@ -1312,7 +1312,7 @@ export function ScheduleGenerator() {
         </div>
       ) : null}
 
-      <div className="schedule-form-region mt-7">
+      <div className="schedule-form-region mt-6">
         <ScheduleForm
           customCycle={form.customCycle}
           disabled={!isReady}

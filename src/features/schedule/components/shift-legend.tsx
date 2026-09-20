@@ -67,7 +67,7 @@ export function ShiftLegend({
                 colorClassName,
               )}
             >
-              <Icon aria-hidden="true" className="size-3.5" />
+              <Icon aria-hidden="true" className="size-4" />
             </span>
             <span>
               <span className="font-semibold">
