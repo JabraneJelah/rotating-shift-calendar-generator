@@ -8,7 +8,7 @@ import {
   type FormEvent,
 } from "react";
 
-import { CalendarRange, LockKeyhole } from "lucide-react";
+import { CalendarRange, CalendarSync, LockKeyhole } from "lucide-react";
 
 import {
   parseScheduleQuery,
@@ -172,6 +172,33 @@ function formErrorMessages(
   ];
 }
 
+export const UNAPPLIED_EDITS_ANNOUNCEMENT =
+  "Unapplied changes. Press Update schedule to refresh the calendar below.";
+
+/**
+ * Decides whether the unapplied-edits live region should change on this
+ * render, given the current flag and its value on the previous render.
+ * Returns `null` when nothing should change, so the caller can skip calling
+ * `setState` entirely on every render where the dirty state merely persists
+ * (as opposed to newly entering or leaving it). This is exported and unit
+ * tested directly because React bails out of re-rendering a `setState` call
+ * that repeats the same primitive value, which means a DOM-observation test
+ * cannot tell "announced once" apart from "announced on every edit" — only a
+ * direct assertion on this function's return value can.
+ */
+export function computeUnappliedEditsAnnouncement(
+  hasUnappliedEdits: boolean,
+  wasUnappliedEdits: boolean,
+): string | null {
+  if (hasUnappliedEdits && !wasUnappliedEdits) {
+    return UNAPPLIED_EDITS_ANNOUNCEMENT;
+  }
+  if (!hasUnappliedEdits && wasUnappliedEdits) {
+    return "";
+  }
+  return null;
+}
+
 function getLocalToday(): ISODate | null {
   const now = new Date();
   const value = `${now.getFullYear().toString().padStart(4, "0")}-${(
@@ -282,6 +309,9 @@ export function ScheduleGenerator() {
   const [saveState, setSaveState] = useState<SaveState>("unsaved");
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
   const [hasUnappliedEdits, setHasUnappliedEdits] = useState(false);
+  const [unappliedEditsAnnouncement, setUnappliedEditsAnnouncement] =
+    useState("");
+  const previousHasUnappliedEditsRef = useRef(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const repositoryRef = useRef<IndexedDBPlannerRepository | null>(null);
@@ -317,6 +347,21 @@ export function ScheduleGenerator() {
     savedPlanners.length,
     saveState,
   ]);
+
+  useEffect(() => {
+    // Announce only the false->true transition, once, so a screen reader is
+    // not re-told about the same dirty state on every further keystroke. See
+    // computeUnappliedEditsAnnouncement's own comment for why this decision
+    // is a separately unit-tested pure function rather than inline checks.
+    const nextAnnouncement = computeUnappliedEditsAnnouncement(
+      hasUnappliedEdits,
+      previousHasUnappliedEditsRef.current,
+    );
+    if (nextAnnouncement !== null) {
+      setUnappliedEditsAnnouncement(nextAnnouncement);
+    }
+    previousHasUnappliedEditsRef.current = hasUnappliedEdits;
+  }, [hasUnappliedEdits]);
 
   const focusErrorSummary = useCallback(() => {
     window.setTimeout(() => errorSummaryRef.current?.focus(), 0);
@@ -1275,6 +1320,7 @@ export function ScheduleGenerator() {
           plannerErrors={plannerErrors}
           shiftDetails={shiftDetails}
           hasGenerated={generated !== null}
+          hasUnappliedEdits={hasUnappliedEdits}
           mode={form.mode}
           onCustomCycleChange={(customCycle) => {
             setHasUnappliedEdits(true);
@@ -1341,6 +1387,9 @@ export function ScheduleGenerator() {
       <p aria-live="polite" className="sr-only">
         {statusMessage}
       </p>
+      <p aria-live="polite" className="sr-only">
+        {unappliedEditsAnnouncement}
+      </p>
 
       {generated ? (
         <>
@@ -1391,6 +1440,13 @@ export function ScheduleGenerator() {
             yearlyView={yearlyView}
           />
           {insightResult ? <ScheduleInsights result={insightResult} /> : null}
+          {hasUnappliedEdits ? (
+            <p className="border-primary/20 bg-primary/8 mt-6 flex items-center gap-2 rounded-xl border p-3 text-sm font-medium">
+              <CalendarSync aria-hidden="true" className="size-4 shrink-0" />
+              Unapplied changes — the calendar below still reflects your last
+              applied settings. Press Update schedule above to see this change.
+            </p>
+          ) : null}
           {viewMode === "month" ? (
             <MonthlyCalendar
               config={generated.config}

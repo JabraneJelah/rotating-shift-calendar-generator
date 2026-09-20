@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 
-import { CalendarPlus2 } from "lucide-react";
+import { CalendarPlus2, CalendarSync } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type {
@@ -37,6 +37,7 @@ type ScheduleFormProps = {
   readonly plannerErrors: PlannerFieldErrors;
   readonly shiftDetails: EditableShiftDetails;
   readonly hasGenerated: boolean;
+  readonly hasUnappliedEdits: boolean;
   readonly onModeChange: (mode: ScheduleMode) => void;
   readonly onPresetChange: (presetId: PresetId) => void;
   readonly onWorkingShiftChange: (shift: WorkingShiftKind) => void;
@@ -61,6 +62,7 @@ export function ScheduleForm({
   plannerErrors,
   shiftDetails,
   hasGenerated,
+  hasUnappliedEdits,
   onModeChange,
   onPresetChange,
   onWorkingShiftChange,
@@ -264,9 +266,23 @@ export function ScheduleForm({
         value={shiftDetails}
       />
 
-      <Button className="w-full sm:w-auto" disabled={disabled} type="submit">
-        <CalendarPlus2 aria-hidden="true" className="mr-2 size-4" />
+      <Button
+        className={`w-full sm:w-auto ${
+          hasGenerated && hasUnappliedEdits ? "ring-2 ring-primary/40" : ""
+        }`}
+        disabled={disabled}
+        type="submit"
+        variant={hasGenerated && !hasUnappliedEdits ? "outline" : "default"}
+      >
+        {hasGenerated ? (
+          <CalendarSync aria-hidden="true" className="mr-2 size-4" />
+        ) : (
+          <CalendarPlus2 aria-hidden="true" className="mr-2 size-4" />
+        )}
         {hasGenerated ? "Update schedule" : "Generate schedule"}
+        {hasGenerated && hasUnappliedEdits ? (
+          <span className="sr-only"> (unapplied changes pending)</span>
+        ) : null}
       </Button>
     </form>
   );

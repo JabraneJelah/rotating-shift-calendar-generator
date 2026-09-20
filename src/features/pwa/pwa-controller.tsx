@@ -433,6 +433,7 @@ function PwaRuntime() {
                 onClick={() => void activateUpdate()}
                 type="button"
               >
+                <RefreshCw aria-hidden="true" className="mr-2 size-4" />
                 Update now
               </Button>
               <Button

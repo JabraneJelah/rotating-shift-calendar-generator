@@ -498,6 +498,47 @@ test("renames, duplicates, deletes, exports, reviews, and atomically imports loc
   await expect(page.getByText("Renamed rotation (imported)")).toBeVisible();
 });
 
+test("clears unapplied-edit state when a different saved planner is opened", async ({
+  page,
+}) => {
+  // This exercises applySavedPlanner's setHasUnappliedEdits(false) reset via
+  // openPlanner(), using a real IndexedDB in a real browser — this path
+  // cannot be driven in the jsdom unit-test suite because jsdom has no
+  // native indexedDB and this project has no fake-indexeddb dependency.
+  await page.goto("/");
+  await startDate(page).fill("2026-10-01");
+  await page.getByRole("button", { name: /generate schedule/i }).click();
+  await page.getByLabel("Planner name").fill("Primary rotation");
+  await page.getByRole("button", { name: "Save planner" }).click();
+  await page.getByText("Manage saved planners (1)").click();
+  await page
+    .getByRole("button", { name: "Duplicate Primary rotation" })
+    .click();
+  await page.getByRole("button", { name: "Duplicate", exact: true }).click();
+  await expect(page.getByText("Manage saved planners (2)")).toBeVisible();
+
+  await startDate(page).fill("2026-11-05");
+  await expect(
+    page.getByText(/unapplied changes — the calendar below/i),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /update schedule/i }),
+  ).toHaveAccessibleName(/pending/i);
+
+  const copyRow = page
+    .getByRole("listitem")
+    .filter({ hasText: "Primary rotation copy" });
+  await copyRow.getByRole("button", { name: "Open" }).click();
+  await expect(page.getByText("Current: Primary rotation copy")).toBeVisible();
+
+  await expect(
+    page.getByText(/unapplied changes — the calendar below/i),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /update schedule/i }),
+  ).not.toHaveAccessibleName(/pending/i);
+});
+
 test("surfaces a newer saved revision from another tab without overwriting local state", async ({
   context,
   page,

@@ -5,9 +5,14 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ScheduleGenerator } from "@/features/schedule";
+import {
+  computeUnappliedEditsAnnouncement,
+  UNAPPLIED_EDITS_ANNOUNCEMENT,
+} from "@/features/schedule/components/schedule-generator";
 import {
   SCHEDULE_ERROR_MESSAGES,
   getScheduleErrorMessage,
@@ -1005,6 +1010,266 @@ describe("private date changes", () => {
       screen.queryByText("Monthly personal statistics"),
     ).not.toBeInTheDocument();
   });
+});
+
+function expectUnappliedEditsPending() {
+  expect(
+    screen.getByText(
+      /unapplied changes — the calendar below still reflects your last applied settings/i,
+    ),
+  ).toBeVisible();
+  expect(screen.getByText(UNAPPLIED_EDITS_ANNOUNCEMENT)).toBeInTheDocument();
+  const button = screen.getByRole("button", {
+    name: /update schedule.*unapplied changes pending/i,
+  });
+  expect(button.className).toContain("ring-primary/40");
+  return button;
+}
+
+function expectUnappliedEditsSettled() {
+  expect(screen.queryByText(/unapplied changes/i)).not.toBeInTheDocument();
+  const button = screen.getByRole("button", { name: /update schedule/i });
+  expect(button).not.toHaveAccessibleName(/pending/i);
+  expect(button.className).not.toContain("ring-primary/40");
+  expect(button.className).toContain("border-border");
+  return button;
+}
+
+describe("unapplied edits indicator — computeUnappliedEditsAnnouncement (pure logic)", () => {
+  // This function exists specifically so the "announce once, never re-fire"
+  // requirement can be asserted directly. A DOM-rendering test cannot catch
+  // a regression here: React skips re-rendering a setState call that repeats
+  // the identical primitive value, so "the guard is broken and fires the
+  // setter on every edit" and "the guard works and fires it once" produce
+  // byte-identical DOM output. Only this direct call-and-return assertion
+  // can tell them apart.
+  it("returns the message on the false->true transition", () => {
+    expect(computeUnappliedEditsAnnouncement(true, false)).toBe(
+      UNAPPLIED_EDITS_ANNOUNCEMENT,
+    );
+  });
+
+  it("returns null (no state change) when already dirty and still dirty — this is the exact case a broken re-firing guard would get wrong", () => {
+    expect(computeUnappliedEditsAnnouncement(true, true)).toBeNull();
+  });
+
+  it("returns the empty string on the true->false transition, to clear the region", () => {
+    expect(computeUnappliedEditsAnnouncement(false, true)).toBe("");
+  });
+
+  it("returns null (no state change) when already settled and still settled", () => {
+    expect(computeUnappliedEditsAnnouncement(false, false)).toBeNull();
+  });
+});
+
+describe("unapplied edits indicator — baseline states", () => {
+  it("shows no indicator and no pending button state before any generation", () => {
+    render(<ScheduleGenerator />);
+
+    expect(screen.queryByText(/unapplied changes/i)).not.toBeInTheDocument();
+    const button = screen.getByRole("button", { name: /generate schedule/i });
+    expect(button.className).toContain("bg-primary");
+    expect(button.className).not.toContain("ring-primary/40");
+  });
+
+  it("settles immediately after a first successful generation", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+
+    expectUnappliedEditsSettled();
+  });
+
+  it("clears the indicator, announcement, and pending button state once changes are applied", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    setStartDate("2026-11-01");
+
+    expectUnappliedEditsPending();
+
+    fireEvent.click(screen.getByRole("button", { name: /update schedule/i }));
+
+    expectUnappliedEditsSettled();
+  });
+});
+
+describe("unapplied edits indicator — each independent trigger path", () => {
+  // Phase 7A's audit cited six call sites inside ScheduleForm's props
+  // (preset, working shift, start date, custom cycle, shift-detail edit,
+  // shift-detail reset) plus mode change handled separately in
+  // handleModeChange — seven independently wired setHasUnappliedEdits(true)
+  // call sites in total, none of which share a handler function. Each is
+  // exercised on its own below, isolated from the others by generating
+  // first (which resets the flag to false) and confirming any earlier setup
+  // edits (e.g. switching to custom mode) happened before that reset.
+
+  it("1. schedule mode change (preset -> custom)", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+
+    fireEvent.click(screen.getByLabelText(/custom cycle/i));
+
+    expectUnappliedEditsPending();
+  });
+
+  it("2. preset change", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Shift pattern" }), {
+      target: { value: "2-2-3" },
+    });
+
+    expectUnappliedEditsPending();
+  });
+
+  it("3. working-shift change", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+
+    fireEvent.click(screen.getByLabelText(/night shift/i));
+
+    expectUnappliedEditsPending();
+  });
+
+  it("4. pattern start-date change", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+
+    setStartDate("2026-11-01");
+
+    expectUnappliedEditsPending();
+  });
+
+  it("5. custom-cycle edit", () => {
+    render(<ScheduleGenerator />);
+    // Switching to custom mode happens before generating, so it cannot be
+    // the thing that later flips hasUnappliedEdits back to true.
+    fireEvent.click(screen.getByLabelText(/custom cycle/i));
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+    expect(screen.getByLabelText(/custom cycle/i)).toBeChecked();
+
+    fireEvent.change(screen.getByLabelText(/shift for cycle day 1/i), {
+      target: { value: "night" },
+    });
+
+    expectUnappliedEditsPending();
+  });
+
+  it("6. shift-detail edit", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+    openShiftDetails();
+    const day = screen.getByRole("group", { name: "Day details" });
+
+    fireEvent.change(within(day).getByLabelText("Shift name"), {
+      target: { value: "Early duty" },
+    });
+
+    expectUnappliedEditsPending();
+  });
+
+  it("7. shift-detail reset", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+    openShiftDetails();
+
+    fireEvent.click(screen.getByRole("button", { name: /reset shift details/i }));
+
+    expectUnappliedEditsPending();
+  });
+});
+
+describe("unapplied edits indicator — keyboard reachability", () => {
+  // jsdom itself does not implement browser Tab-key focus traversal at all
+  // (a real-browser default action, not part of the DOM spec) — that is why
+  // this test uses @testing-library/user-event's tab(), which computes the
+  // real tabbable-element order and moves focus the same way a browser's
+  // default Tab handling would, rather than jumping straight to an element
+  // with a bare .focus() call.
+  it("reaches the pending button via real Tab-order traversal from the just-edited field, and Enter activates it", async () => {
+    const user = userEvent.setup();
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    expectUnappliedEditsSettled();
+
+    const dateInput = screen.getByLabelText(/pattern start date/i);
+    await user.click(dateInput);
+    expect(dateInput).toHaveFocus();
+    fireEvent.change(dateInput, { target: { value: "2026-11-01" } });
+    const pendingButton = expectUnappliedEditsPending();
+
+    // Walk the real Tab order forward from the just-edited field until the
+    // submit button is reached, exactly as a keyboard-only user would —
+    // rather than asserting a specific tab count, which would make this
+    // test brittle to unrelated layout changes elsewhere in the form.
+    let reachedButton = false;
+    for (let step = 0; step < 20; step += 1) {
+      await user.tab();
+      if (document.activeElement === pendingButton) {
+        reachedButton = true;
+        break;
+      }
+    }
+    expect(reachedButton).toBe(true);
+    expect(document.activeElement).toHaveAccessibleName(
+      /update schedule.*pending/i,
+    );
+
+    await user.keyboard("{Enter}");
+    expectUnappliedEditsSettled();
+  });
+});
+
+describe("unapplied edits indicator — reset on non-commit paths", () => {
+  it("clears via browser-history restoration (popstate), driven through the real listener, not cited by line number", () => {
+    render(<ScheduleGenerator />);
+    setStartDate("2026-10-01");
+    generate();
+    setStartDate("2026-11-01");
+    expectUnappliedEditsPending();
+
+    window.history.pushState(
+      null,
+      "",
+      "/?v=1&kind=preset&p=4-on-4-off&s=2026-12-01&shift=day&m=2026-12",
+    );
+    fireEvent.popState(window);
+
+    expectUnappliedEditsSettled();
+    expect(
+      screen.getByRole("table", { name: /december 2026 work schedule/i }),
+    ).toBeInTheDocument();
+  });
+
+  // The saved-planner-load path (applySavedPlanner, invoked from
+  // openPlanner()/loadCleanRoot()) is NOT covered here. IndexedDBPlannerRepository
+  // requires a global `indexedDB`, and this project's jsdom test environment
+  // does not provide one (confirmed: `typeof indexedDB === "undefined"` in
+  // jsdom 29.1.1, which is why IndexedDBPlannerRepository.initialize() would
+  // immediately report saveState "unavailable" here). Testing it would need
+  // either a real browser (which is what tests/e2e/homepage.spec.ts's saved
+  // planner tests already use) or a fake-indexeddb dependency, which is not
+  // installed and would violate the original brief's "no new dependency"
+  // non-goal. See tests/e2e/homepage.spec.ts's new
+  // "clears unapplied-edit state when a different saved planner is opened"
+  // test for the real-IndexedDB-backed version of this path instead.
 });
 
 describe("domain error presentation", () => {

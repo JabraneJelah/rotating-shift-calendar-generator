@@ -309,3 +309,79 @@ test("keeps the application free of document overflow at required widths", async
     ).toBe(true);
   }
 });
+
+for (const width of [390, 1024]) {
+  test(`distinguishes "Update schedule" from "Update now" by icon at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await waitForServiceWorkerControl(page);
+    await page.getByLabel(/pattern start date/i).fill("2026-10-01");
+    await page.getByRole("button", { name: /generate schedule/i }).click();
+    await expect(
+      page.getByRole("table", { name: /october 2026/i }),
+    ).toBeVisible();
+
+    const workerPath = path.join(process.cwd(), "public", "sw.js");
+    const releaseA = await readFile(workerPath, "utf8");
+    const releaseB = releaseA.replace(
+      /"releaseId":"[a-f0-9]+"/,
+      '"releaseId":"cccccccccccccccccccccccc"',
+    );
+    expect(releaseB).not.toBe(releaseA);
+
+    try {
+      await writeFile(workerPath, releaseB, "utf8");
+      await page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.update();
+        if (registration.waiting !== null) return;
+        await new Promise<void>((resolve, reject) => {
+          const timeout = window.setTimeout(
+            () => reject(new Error("Release B did not finish installing.")),
+            10_000,
+          );
+          registration.addEventListener(
+            "updatefound",
+            () => {
+              const worker = registration.installing;
+              worker?.addEventListener("statechange", () => {
+                if (worker.state === "installed") {
+                  window.clearTimeout(timeout);
+                  resolve();
+                }
+              });
+            },
+            { once: true },
+          );
+        });
+      });
+      await expect(page.getByText("Update available")).toBeVisible();
+
+      // A generator edit while a PWA update is also pending is the exact
+      // same-screen collision Phase 7A flagged: two buttons whose names both
+      // start with "Update", now visible at the same time.
+      await page.getByLabel(/pattern start date/i).fill("2026-11-01");
+
+      const scheduleButton = page.getByRole("button", {
+        name: /update schedule/i,
+      });
+      const pwaButton = page.getByRole("button", { name: "Update now" });
+      await expect(scheduleButton).toBeVisible();
+      await expect(pwaButton).toBeVisible();
+
+      await expect(
+        scheduleButton.locator("svg.lucide-calendar-sync"),
+      ).toHaveCount(1);
+      await expect(
+        scheduleButton.locator("svg.lucide-refresh-cw"),
+      ).toHaveCount(0);
+      await expect(pwaButton.locator("svg.lucide-refresh-cw")).toHaveCount(1);
+      await expect(
+        pwaButton.locator("svg.lucide-calendar-sync"),
+      ).toHaveCount(0);
+    } finally {
+      await writeFile(workerPath, releaseA, "utf8");
+    }
+  });
+}
