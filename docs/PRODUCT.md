@@ -55,6 +55,8 @@ Phase 6A4 adds a separate timed work-calendar export. The user must explicitly s
 
 Phase 6B1 adds optional named planners saved through native IndexedDB in the current browser. The first save is explicit; successful committed changes then autosave after 750 ms, while raw or invalid form drafts never replace the last valid record. A clean `/` restores the last-opened planner, but every V1 query remains an unsaved base-only session. Users may keep 20 planners, manage them locally, export one or all as readable JSON, and review strict import-as-new results before one atomic write. Storage is not cloud synchronization, encrypted secure storage, or a guaranteed backup; important planners should also be exported as private JSON documents.
 
+Phase 6B2 makes the application installable where the browser supports installation. After one successful online load and completed application-cache installation, the core planner and locally saved planners can usually continue working offline on the same browser and device. The first visit, uncached content, browser storage eviction, clearing site data, and unsupported browsers remain explicit limits. Installation creates no account, does not synchronize devices, and does not make local data permanent; JSON backup remains the user-controlled recovery path.
+
 ## Non-goals
 
 The product is not an employer roster, payroll or time-clock system. It does not assign multiple employees, negotiate swaps, track leave, provide legal or fatigue advice, or guarantee that a named pattern matches a particular employer's implementation. Accounts, authentication, payments, server databases, cloud synchronization, a CMS, a backend API, ads, analytics, and localization remain outside the current implementation.

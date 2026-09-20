@@ -75,6 +75,7 @@ import {
   presentPlannerErrors,
   type PlannerFieldErrors,
 } from "@/features/schedule/presentation/planner-error-messages";
+import { publishPlannerSafety, PwaController } from "@/features/pwa";
 
 import { MonthlyCalendar } from "./monthly-calendar";
 import { DateExceptionEditor } from "./date-exception-editor";
@@ -280,6 +281,7 @@ export function ScheduleGenerator() {
   );
   const [saveState, setSaveState] = useState<SaveState>("unsaved");
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
+  const [hasUnappliedEdits, setHasUnappliedEdits] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const repositoryRef = useRef<IndexedDBPlannerRepository | null>(null);
@@ -294,6 +296,27 @@ export function ScheduleGenerator() {
   useEffect(() => {
     saveStateRef.current = saveState;
   }, [saveState]);
+
+  useEffect(() => {
+    const pendingWrite = saveState === "unsaved" || saveState === "saving";
+    const conflict = saveState === "conflict" || saveState === "failed";
+    const safeSavedPlanner =
+      activePlanner !== null && saveState === "saved" && !hasUnappliedEdits;
+    const safeEmptyGenerator =
+      activePlanner === null && generated === null && !hasUnappliedEdits;
+    publishPlannerSafety({
+      safeToRefresh: safeSavedPlanner || safeEmptyGenerator,
+      pendingWrite,
+      conflict,
+      meaningfulUse: generated !== null || savedPlanners.length > 0,
+    });
+  }, [
+    activePlanner,
+    generated,
+    hasUnappliedEdits,
+    savedPlanners.length,
+    saveState,
+  ]);
 
   const focusErrorSummary = useCallback(() => {
     window.setTimeout(() => errorSummaryRef.current?.focus(), 0);
@@ -390,6 +413,7 @@ export function ScheduleGenerator() {
     const search = window.location.search;
 
     if (search === "") {
+      setHasUnappliedEdits(false);
       setForm(createDefaultFormState());
       setFieldErrors({});
       setGeneralErrors([]);
@@ -408,6 +432,7 @@ export function ScheduleGenerator() {
     const parsedResult = parseScheduleQuery(search);
 
     if (!parsedResult.ok) {
+      setHasUnappliedEdits(false);
       setForm(createDefaultFormState());
       setFieldErrors({});
       setGeneralErrors([]);
@@ -435,6 +460,7 @@ export function ScheduleGenerator() {
     setShiftDetails(createDefaultEditableShiftDetails());
     setPlannerErrors({});
     setDateExceptions([]);
+    setHasUnappliedEdits(false);
     commitSchedule(
       config,
       selectedMonth,
@@ -473,6 +499,7 @@ export function ScheduleGenerator() {
       setPlannerTimeZone(planner.timeZone ?? "");
       setActivePlanner(planner);
       setSaveState("saved");
+      setHasUnappliedEdits(false);
       return true;
     },
     [commitSchedule],
@@ -637,6 +664,7 @@ export function ScheduleGenerator() {
   }
 
   function handleModeChange(mode: ScheduleMode) {
+    setHasUnappliedEdits(true);
     setForm((current) => ({ ...current, mode }));
 
     if (mode === "preset") {
@@ -727,6 +755,7 @@ export function ScheduleGenerator() {
     if (committed && baseChanged) {
       setDateExceptions([]);
     }
+    if (committed) setHasUnappliedEdits(false);
   }
 
   function handleMonthNavigation(viewMonth: ISOYearMonth) {
@@ -1248,30 +1277,36 @@ export function ScheduleGenerator() {
           hasGenerated={generated !== null}
           mode={form.mode}
           onCustomCycleChange={(customCycle) => {
+            setHasUnappliedEdits(true);
             setForm((current) => ({ ...current, customCycle }));
             clearFieldError("cycle");
           }}
           onModeChange={handleModeChange}
           onShiftDetailsChange={(value) => {
+            setHasUnappliedEdits(true);
             setShiftDetails(value);
             setPlannerErrors({});
             setGeneralErrors([]);
           }}
           onShiftDetailsReset={() => {
+            setHasUnappliedEdits(true);
             setShiftDetails(createDefaultEditableShiftDetails());
             setPlannerErrors({});
             setGeneralErrors([]);
           }}
           onPresetChange={(presetId) => {
+            setHasUnappliedEdits(true);
             setForm((current) => ({ ...current, presetId }));
             setGeneralErrors([]);
           }}
           onStartDateChange={(startDate) => {
+            setHasUnappliedEdits(true);
             setForm((current) => ({ ...current, startDate }));
             clearFieldError("startDate");
           }}
           onSubmit={handleSubmit}
           onWorkingShiftChange={(workingShift) => {
+            setHasUnappliedEdits(true);
             setForm((current) => ({ ...current, workingShift }));
             setGeneralErrors([]);
           }}
@@ -1300,6 +1335,8 @@ export function ScheduleGenerator() {
         saveState={saveState}
         storageMessage={storageMessage}
       />
+
+      <PwaController />
 
       <p aria-live="polite" className="sr-only">
         {statusMessage}

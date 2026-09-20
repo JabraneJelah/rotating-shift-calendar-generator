@@ -50,6 +50,12 @@ Saved planners use same-origin IndexedDB and are not uploaded. IndexedDB is neit
 
 Every IndexedDB read and import is untrusted. Decoders reject non-plain/accessor objects, unsafe prototype-related keys, unknown fields, unsupported versions, invalid domain values, duplicate identities/references, files over 5 MiB, more than 20 planners, nesting beyond 12, and aggregate strings over 1,000,000 code points. Imports are reviewed, receive new planner IDs, and commit atomically as new records; a matching ID/name never authorizes replacement. No imported value is evaluated, merged unsafely, injected as HTML, logged, uploaded, or placed in a URL. Broadcast messages contain only action, planner ID, and revision.
 
+## Phase 6B2 application caching
+
+The production service worker is generated from the verified build graph and caches same-origin application assets only. Installation verifies status, redirect/opaque state, content type, byte limit, and SHA-256 revision before promoting a temporary cache. Partial generations cannot activate. Requests with ranges, cross-origin requests, unknown static assets, source maps, development assets, generated JSON/ICS blobs, imported backup contents, and arbitrary query variants are excluded.
+
+The worker never reads or writes IndexedDB and never logs planner data. Inter-tab and worker messages accept exact schemas containing only release identifiers, random tab identifiers, and coarse `safe`, `pending`, or `conflict` states. New releases wait for explicit activation and all known tabs to be safe. HTTPS is mandatory outside browser-recognized localhost development, registration is production-only unless a test explicitly opts in, and `/sw.js` is served with `no-store`, a JavaScript MIME type, `nosniff`, and root scope. The Content Security Policy keeps scripts, connections, workers, fonts, forms, and frames same-origin except for the minimum inline allowances required by the current Next.js runtime and styles.
+
 ## Phase 3B local printing
 
 Printing is initiated only by an explicit user action and delegates directly to the browser's native print dialog. The application reuses escaped semantic calendar HTML and local CSS; it does not build raw HTML strings, rasterize content, contact a print/PDF service, load remote print assets, store print jobs, or transmit schedule data. Browser “Save as PDF” behavior remains local browser functionality rather than an application-generated download.

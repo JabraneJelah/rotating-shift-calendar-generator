@@ -44,7 +44,9 @@ Deployment must set the real HTTPS site origin. The repository uses `http://loca
 
 ## Discovery controls
 
-Use native `sitemap.ts` and `robots.ts`; the sitemap contains canonical, indexable URLs only. Drafts, internal tools, error pages, thin search/filter pages, and user-specific or configurable result URLs must not be indexed. `robots.txt` is not a security boundary. The web manifest supports repeat mobile visits but does not imply offline behavior.
+Use native `sitemap.ts` and `robots.ts`; the sitemap contains canonical, indexable URLs only. Drafts, internal tools, error pages, thin search/filter pages, and user-specific or configurable result URLs must not be indexed. `robots.txt` is not a security boundary. The web manifest supports installation, while the `/offline` document is excluded from the sitemap and carries `noindex, nofollow, noarchive` metadata and response headers.
+
+The service worker is a returning-browser enhancement. Crawlers and first visits receive the normal server-rendered documents, metadata, canonicals, structured data, sitemap, robots response, and status codes without depending on it. It does not turn unknown paths into successful homepage responses. All `/?v=1&...` requests reuse one cached clean-root shell offline while client-side validation retains the actual query; query permutations are never separate cached pages.
 
 ## Internal links and content
 

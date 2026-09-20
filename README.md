@@ -6,6 +6,12 @@ The current Phase 6B1 product supports six verified presets: fixed `4 on / 4 off
 
 The year selector remains transient, while the optional Sunday-first preference is saved in compatible V1 links as `ws=sun`; old links and Monday-first links remain unchanged. Month export targets the preserved visible month and year export targets the actively displayed year. Print output hides page chrome and controls; monthly output requests portrait and yearly output requests landscape with a break after six months. Final pagination, headers, margins, and background-color handling remain subject to the browser and printer dialog.
 
+## Install and offline use
+
+Shift Calendar is installable on browsers that support installation. After one successful online load and completed application-cache installation, core planner features and locally saved planners can usually continue working offline on the same browser and device. Browser storage can still be cleared or evicted, so keep a private JSON backup of important planners. Installation creates no account and does not synchronize devices.
+
+The production build runs Next.js and then `scripts/pwa/generate-pwa.mjs`. The dependency-free Node 24 generator validates the emitted route/asset graph, pinned IANA `2026d` timezone chunk, icon/manifest contract, SHA-256 revisions, and strict cache budgets before writing `public/sw.js`. Development does not register a service worker. Run `npm run test:e2e:pwa` after a successful production build with an isolated browser profile. See [the deployment contract](docs/DEPLOYMENT.md) for HTTPS, headers, publication order, retention, and rollback.
+
 ## Requirements
 
 - Node.js 24 LTS (`.nvmrc` is included)
@@ -34,6 +40,7 @@ npm run typecheck
 npm test
 npm run build
 npm run test:e2e
+npm run test:e2e:pwa
 ```
 
 Use `npm run format` to apply formatting and `npm run test:watch` during unit/component test development. The end-to-end command requires a Playwright Chromium installation (`npx playwright install chromium`).
@@ -48,6 +55,10 @@ src/features/schedule/   Generator UI, presentation helpers, and pure domain mod
 src/lib/                 Generic configuration and utilities
 src/content/             Typed editorial and route metadata sources
 src/styles/              Global styles and design tokens
+src/features/pwa/        Registration, install, connectivity, and safe updates
+src/pwa/                 Application-owned service-worker source
+scripts/pwa/             Dependency-free post-build asset generator
+public/icons/            Reviewed install and touch icons
 tests/unit/              Unit and component tests
 tests/e2e/               Playwright journeys
 docs/                    Product and engineering sources of truth

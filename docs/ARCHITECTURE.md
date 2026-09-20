@@ -109,6 +109,14 @@ Print output uses the same semantic result DOM rather than a cloned or separatel
 
 ## Configuration
 
+## PWA and offline boundary
+
+`scripts/pwa/generate-pwa.mjs` runs only after a successful production build under Node.js 24. It derives a strict, revisioned precache graph from the emitted static HTML and Next.js build manifests, validates content types, hashes, route completeness, the pinned IANA timezone graph, and hard size/count budgets, then atomically emits the ignored `public/sw.js`. No hashed chunk list is maintained by hand and no PWA dependency is used.
+
+The application-owned worker controls `/`, caches application assets only, normalizes all homepage query variants to the single cached clean-root document, and provides a dedicated non-indexable offline response only when an unknown navigation cannot reach the network. It never opens IndexedDB, caches planner or generated download contents, or runtime-caches arbitrary responses. The app owns planner migrations and data validation independently.
+
+New workers remain waiting. A client-side coordinator exchanges only release, tab identity, and private-free safety states. Activation requires an explicit user action and every known controlled tab to be safe; unknown, saving, edited, failed, or conflicted tabs block it. Existing clients keep their active release while at most two completed cache generations coexist.
+
 `NEXT_PUBLIC_SITE_URL` is parsed centrally in `src/lib/site.ts`. It must be an HTTP(S) origin without a path. Local development falls back to `http://localhost:3000`; production must provide the real origin. Secrets must never use the `NEXT_PUBLIC_` prefix or be committed.
 
 ## Dependencies

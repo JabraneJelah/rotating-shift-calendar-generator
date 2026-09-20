@@ -5,6 +5,7 @@
 # Next.js outputs
 /.next
 /out
+/public/sw.js
 
 # test outputs
 /coverage

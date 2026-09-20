@@ -126,9 +126,17 @@ Exit criteria were met: formatting, linting, type checking, all 307 unit/compone
 - Clean-root restoration with unchanged base-only V1 URL precedence and graceful unsaved fallback
 - No production/test dependency, server endpoint, account, cloud synchronization, URL V2, analytics, or deployment
 
-PWA installation, service workers and offline asset caching remain a separate later Phase 6B step after persistence stability is reviewed.
-
 Exit criteria were met: a clean install, formatting, linting, type checking, all 318 unit/component tests, 304 schedule tests in UTC, America/New_York, and Africa/Casablanca, all 48 browser tests, the production build, and the production dependency audit passed. Real Chromium covers native IndexedDB, planner lifecycle, autosave/reload, validated backup/import, V1 precedence, cross-tab conflict handling, unavailable-storage fallback, and responsive widths. The pinned timezone payload remains lazy and no dependency or server route was added.
+
+### Phase 6B2 — installable PWA and bounded offline application (complete)
+
+- Add a standards-based manifest, install icons, and a non-indexable no-JavaScript offline document.
+- Generate a dependency-free, revisioned precache graph from the real production output under Node.js 24, with fatal entry and byte budgets.
+- Cache the approved static application and lazy pinned timezone graph without caching planner contents, backup files, generated downloads, or arbitrary responses.
+- Preserve V1 query semantics through one clean-root shell, proper unknown-route behavior, and conservative offline fallbacks.
+- Use explicit, safe, multi-tab-aware update activation and restrained install/connectivity interfaces.
+
+Platform installation, storage eviction, uninstall behavior, device restart, screen readers, and real reverse-proxy/Docker headers remain manual release checks rather than universal product guarantees.
 
 ## Later evaluation
 

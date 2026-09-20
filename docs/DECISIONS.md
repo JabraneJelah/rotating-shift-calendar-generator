@@ -328,3 +328,23 @@ Statuses: **Accepted**, **Proposed**, **Superseded**.
 **Reason:** Portable user-controlled backup is necessary because browser storage can be cleared or evicted. Import-as-new prevents an untrusted file or coincidental ID from destroying a local record.
 
 **Consequences:** No merge, automatic replacement, encryption, compression, cloud upload, URL V2, or partial success exists in Phase 6B1. Backup files may contain private details and must be treated as private documents.
+
+## D-045 — Dependency-free deterministic PWA build
+
+**Status:** Accepted
+
+**Decision:** Generate the service worker after `next build` with a Node.js 24 script that discovers the actual static route graph, computes SHA-256 revisions, validates the single pinned 2026d timezone graph, applies hard entry and byte budgets, and injects one stable manifest into an application-owned worker template. Workbox, Serwist, and manually maintained hashed-chunk lists are not used.
+
+**Reason:** Offline correctness depends on the exact emitted release, while an extra caching framework would add dependency and integration risk without removing the need to validate Next.js output.
+
+**Consequences:** The build fails closed when routes, hashes, types, budgets, or timezone invariants drift. `public/sw.js` is generated and ignored, while the template, generator, tests, manifest, and icons are reviewed source. Deployment must build before packaging and retain the previous static generation during rollout.
+
+## D-046 — Asset-only offline storage and user-mediated updates
+
+**Status:** Accepted
+
+**Decision:** Cache Storage contains application assets only. The service worker never reads or writes planner IndexedDB and never caches imports, backups, generated files, notes, or planner-bearing URLs. A new worker remains waiting until the user accepts the update and every known tab reports a private-free safe state.
+
+**Reason:** Planner persistence and application delivery have different schemas, risks, and lifecycles. Separating them prevents service-worker updates from becoming a data migration path.
+
+**Consequences:** Returning users gain bounded offline planner behavior without coupling releases to stored planner records. Saving, raw edits, failures, conflicts, and unknown tabs conservatively block activation. At most the current and immediately previous completed cache generations are retained, and old controlled clients are not forcibly refreshed.

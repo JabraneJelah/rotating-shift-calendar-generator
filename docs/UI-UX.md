@@ -86,6 +86,14 @@ Switching views moves focus to the new result heading and announces the change p
 
 The text-labelled print action invokes native browser printing for the active view. Print media hides site navigation, marketing, configuration, errors, view controls, and actions while keeping a small product label, schedule heading, schedule context, totals, calendar tables, and legend. Monthly print requests portrait output. Year print requests landscape output with January–June followed by a page break and July–December, arranged three across and two down. Browser print engines and user-selected margins, headers, scale, paper, and background settings may alter final pagination, so the layout is a strong request rather than a guarantee.
 
+## Installation, connectivity, and updates
+
+The normal website remains the primary experience. A restrained install action appears only after meaningful planner use and only when the browser exposes its install prompt; dismissal is a non-authoritative 90-day local preference. Unsupported platforms retain their normal browser installation controls and are never shown a false programmatic-install promise.
+
+Connectivity is a small, non-blocking status. One polite announcement is made when the browser reports offline and one when it reports reconnection; color is never the only signal and planner controls remain available. `navigator.onLine` is treated as a hint rather than proof that a specific asset is reachable.
+
+An available update is user-mediated. **Later** leaves the current release running. **Update now** is enabled only after the current planner and all known tabs report a safe state. Activation never steals focus or refreshes while edits, saving, failures, or conflicts are present. The dedicated offline document works without JavaScript, explains the limitation, and provides ordinary links and a retry button.
+
 ## Motion
 
 Motion is brief and functional. Honor `prefers-reduced-motion`, avoid autoplaying effects, and do not make important feedback depend on animation.

@@ -29,11 +29,15 @@ export const metadata: Metadata = {
     follow: true,
   },
   manifest: "/manifest.webmanifest",
+  icons: {
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f7faf9",
+  themeColor: "#176b64",
   colorScheme: "light",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
